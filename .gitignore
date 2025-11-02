@@ -1,3 +1,23 @@
-# ignore environment files
-.env
-.venv
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Python
+wheels/
+*.egg
+
+# Jupyter
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# IDEs
+.vscode/
+
+# Data (keep structure, ignore content)
+data/raw/**/*
+data/intermediate/**/*
+# data/cleaned/**/* # except final cleaned data 
+# !data/**/.gitkeep
