@@ -8,6 +8,8 @@ ENV/
 # Python
 wheels/
 *.egg
+*.egg-info/
+*__pycache__/
 
 # Jupyter
 .ipynb_checkpoints
