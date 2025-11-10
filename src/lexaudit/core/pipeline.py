@@ -61,11 +61,18 @@ class LexAuditPipeline:
 
         # STAGE 2: Resolution
         print(f"[STAGE 2] Resolving citations to canonical IDs...")
-        for citation in analysis.extracted_citations:
+        # Extract the first two citations as a sample
+        sample_citations = analysis.extracted_citations[:2]
+        for citation in sample_citations:
             resolved = self.resolver.resolve(citation)
             analysis.resolved_citations.append(resolved)
 
         print(f"  -> Resolved {len(analysis.resolved_citations)} citations")
+        print("     (showing first 2 resolved citations)")
+        for resolved in analysis.resolved_citations:
+            print(
+                f"     - {resolved.extracted_citation.raw_text} -> {resolved.canonical_id} (conf: {resolved.resolution_confidence:.2f})"
+            )
 
         # STAGE 3: Retrieval
         print(f"[STAGE 3] Retrieving official documents...")

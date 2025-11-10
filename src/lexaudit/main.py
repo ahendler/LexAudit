@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import List, Dict
 from lexaudit.core.pipeline import LexAuditPipeline
+from dotenv import load_dotenv
 
 
 def load_stj_sample(file_path: str) -> List[Dict]:
@@ -39,6 +40,9 @@ def load_stj_sample(file_path: str) -> List[Dict]:
 
 
 def main():
+    # Load .env from config directory
+    load_dotenv(Path(__file__).parent.parent.parent / "config" / ".env")
+
     """Main execution function."""
     print("=" * 80)
     print("LexAudit - Legal Citation Validation Pipeline")

@@ -3,7 +3,9 @@ venv/
 env/
 ENV/
 .venv/
-.env/
+
+# config files
+config/.env
 
 # Python
 wheels/

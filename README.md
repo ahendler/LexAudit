@@ -1,4 +1,4 @@
-# LexAudit ⚖️
+# LexAudit
 [![Status](https://img.shields.io/badge/status-under%20development-blue)](https://github.com/seu-usuario/lexaudit)
 [![Python Version](https://img.shields.io/badge/Python%3A%203.13-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -89,12 +89,17 @@ lexaudit/
     pip install -e .
     ```
 
-4.  **Configure your API keys (when needed):**
+4.  **Configure LLM settings:**
     * Copy the example environment file:
         ```bash
-        cp config/.env.example .env
+        cp config/.env.example config/.env
         ```
-    * Edit the `.env` file and add your keys (e.g., `OPENAI_API_KEY`).
+    * Edit `config/.env` to set your LLM provider and API key:
+        ```bash
+        LLM_PROVIDER=openai  # or anthropic, ollama, etc.
+        LLM_MODEL=gpt-4o-mini
+        OPENAI_API_KEY=your-key-here
+        ```
 
 ## Running the Pipeline
 
@@ -110,28 +115,7 @@ lexaudit
 python3 -m lexaudit.main
 ```
 
-**Option 3 - Direct execution:**
-```bash
-python3 src/lexaudit/main.py
-```
-
 The pipeline will load sample data from `data/cleaned/stj/sample_10_with_fulltext.json` and process the legal citations through the extraction, retrieval, and resolution stages.
-
-## Current Implementation Status
-
-The project is currently in active development. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for detailed progress.
-
-**Current Stage: Base Pipeline Setup**
-- ✅ Data models defined (Citation, RetrievedDocument, ResolvedCitation)
-- ✅ Placeholder extraction (forwards existing citations from JSON)
-- ✅ Base retrieval module structure
-- ✅ Base resolution module structure
-- ✅ Pipeline orchestrator
-- ✅ Main entry point to load and process sample data
-- 🚧 Extraction logic (in progress by team member)
-- 🔜 Retrieval implementation (next step)
-- 🔜 Resolution implementation (next step)
-- 🔜 Validation RAG Agent
 
 ## How to Use (Programmatic Example)
 
@@ -161,29 +145,6 @@ for citation in report['extracted_citations']:
     print(f"Normalized: {citation.normalized_reference}\n")
 ```
 
-### Current Output Example:
-
-```
-Processing document: acórdão 202300123456
-Extracted 15 citations
-
-=== EXTRACTION RESULTS ===
-Citation 1: Lei n. 9.656/1998
-  Type: legal
-  Normalized: Lei 9656/1998
-
-Citation 2: Lei n. 9.961/2000
-  Type: legal
-  Normalized: Lei 9961/2000
-...
-
-=== RETRIEVAL RESULTS ===
-Retrieved 0 documents (placeholder - not implemented yet)
-
-=== RESOLUTION RESULTS ===
-Resolved 0 citations (placeholder - not implemented yet)
-```
-
-## 📜 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
