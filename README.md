@@ -46,8 +46,7 @@ lexaudit/
 │   └── lexaudit/   # The installable Python package
 │       │
 │       ├── extraction/   # [STAGE 1] Citation extraction modules (Linkers)
-│       ├── resolution/   # [STAGE 2] Resolution modules for URN:LEX
-│       ├── retrieval/    # [STAGE 3] API clients for sources (LexML, STF)
+│       ├── retrieval/    # [STAGE 3] API clients for sources (LexML, STF) - merged with resolution
 │       ├── validation/   # [STAGE 4] RAG Agent validation logic
 │       │
 │       ├── prompts/      # Prompt templates used by RAG Agents
@@ -70,36 +69,78 @@ lexaudit/
 └── requirements.txt
 ```
 
-## How to Use
+## Installation
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/seu-usuario/lexaudit.git](https://github.com/seu-usuario/lexaudit.git)
+    git clone https://github.com/ahendler/lexaudit.git
     cd lexaudit
     ```
 
 2.  **Create a virtual environment and install dependencies:**
     ```bash
-    python -m venv venv
-    source venv/bin/activate
+    python3 -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
     pip install -r requirements.txt
     ```
 
-3.  **Configure your API keys:**
+3.  **Install the package in development mode:**
+    ```bash
+    pip install -e .
+    ```
+
+4.  **Configure your API keys (when needed):**
     * Copy the example environment file:
         ```bash
         cp config/.env.example .env
         ```
     * Edit the `.env` file and add your keys (e.g., `OPENAI_API_KEY`).
 
-## How to Use (Example)
+## Running the Pipeline
 
-The pipeline can be invoked programmatically. (This is a conceptual example of how the `src/lexaudit` package will be used):
+After installation, you can run the pipeline in multiple ways:
+
+**Option 1 - As a command (after installing with `pip install -e .`):**
+```bash
+lexaudit
+```
+
+**Option 2 - As a Python module:**
+```bash
+python3 -m lexaudit.main
+```
+
+**Option 3 - Direct execution:**
+```bash
+python3 src/lexaudit/main.py
+```
+
+The pipeline will load sample data from `data/cleaned/stj/sample_10_with_fulltext.json` and process the legal citations through the extraction, retrieval, and resolution stages.
+
+## Current Implementation Status
+
+The project is currently in active development. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for detailed progress.
+
+**Current Stage: Base Pipeline Setup**
+- ✅ Data models defined (Citation, RetrievedDocument, ResolvedCitation)
+- ✅ Placeholder extraction (forwards existing citations from JSON)
+- ✅ Base retrieval module structure
+- ✅ Base resolution module structure
+- ✅ Pipeline orchestrator
+- ✅ Main entry point to load and process sample data
+- 🚧 Extraction logic (in progress by team member)
+- 🔜 Retrieval implementation (next step)
+- 🔜 Resolution implementation (next step)
+- 🔜 Validation RAG Agent
+
+## How to Use (Programmatic Example)
+
+The pipeline can be invoked programmatically:
 
 ```python
 from lexaudit.core.pipeline import LexAuditPipeline
 
-# Load the pipeline (it will instantiate the Linker, Resolver, etc.)
+# Load the pipeline (it will instantiate the Extractor, Retriever, Resolver)
 auditor = LexAuditPipeline()
 
 document_text = """
@@ -110,27 +151,37 @@ Conforme a Lei nº 8.112 de 1990, em seu Art. 999, o servidor será
 aposentado compulsoriamente.
 """
 
-# Execute the complete audit
+# Execute the complete audit (currently runs extraction placeholder + retrieval + resolution)
 report = auditor.run(document_text)
 
-# Print the validation report
-for validation in report.validations:
-    print(f"Citation: {validation.citation.original_text}")
-    print(f"Status: {validation.status}")  # E.g.: CORRECT, NON-EXISTENT
-    print(f"Justification: {validation.justification}\n")
-
+# Process the results
+for citation in report['extracted_citations']:
+    print(f"Citation: {citation.original_text}")
+    print(f"Type: {citation.citation_type}")
+    print(f"Normalized: {citation.normalized_reference}\n")
 ```
 
-### Expected Output:
+### Current Output Example:
 
 ```
-Citação: Art. 5º, inciso XI, da Constituição Federal
-Status: CORRETA
-Justificativa: A citação textual "a casa é asilo inviolável do indivíduo" corresponde exatamente ao texto oficial do Art. 5º, XI, da CF/88.
+Processing document: acórdão 202300123456
+Extracted 15 citations
 
-Citação: Art. 999, da Lei nº 8.112 de 1990
-Status: INEXISTENTE
-Justificativa: A referência "Art. 999" não foi encontrada na Lei nº 8.112/1990. O último artigo desta lei é o Art. 253.
+=== EXTRACTION RESULTS ===
+Citation 1: Lei n. 9.656/1998
+  Type: legal
+  Normalized: Lei 9656/1998
+
+Citation 2: Lei n. 9.961/2000
+  Type: legal
+  Normalized: Lei 9961/2000
+...
+
+=== RETRIEVAL RESULTS ===
+Retrieved 0 documents (placeholder - not implemented yet)
+
+=== RESOLUTION RESULTS ===
+Resolved 0 citations (placeholder - not implemented yet)
 ```
 
 ## 📜 License
