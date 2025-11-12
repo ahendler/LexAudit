@@ -2,7 +2,7 @@
 LexAudit Pipeline - Orchestrates the full validation process.
 """
 from typing import List
-from .models import DocumentAnalysis, ExtractedCitation
+from .models import DocumentAnalysis
 from ..extraction.parser import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
@@ -60,7 +60,7 @@ class LexAuditPipeline:
         print(f"  -> Extracted {len(analysis.extracted_citations)} citations")
 
         # STAGE 2: Resolution
-        print(f"[STAGE 2] Resolving citations to canonical IDs...")
+        print("[STAGE 2] Resolving citations to canonical IDs...")
         # Extract the first two citations as a sample
         sample_citations = analysis.extracted_citations[:2]
         for citation in sample_citations:
@@ -75,7 +75,7 @@ class LexAuditPipeline:
             )
 
         # STAGE 3: Retrieval
-        print(f"[STAGE 3] Retrieving official documents...")
+        print("[STAGE 3] Retrieving official documents...")
         retrieved_count = 0
         for resolved in analysis.resolved_citations:
             document = self.retriever.retrieve(resolved)
@@ -86,7 +86,7 @@ class LexAuditPipeline:
         print(f"  -> Retrieved {retrieved_count} documents")
 
         # STAGE 4: Validation (not implemented yet)
-        print(f"[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
+        print("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
         # TODO: Implement validation with RAG agent
         # for resolved, document in zip(analysis.resolved_citations, retrieved_docs):
         #     validated = self.validator.validate(resolved, document)
