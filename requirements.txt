@@ -3,3 +3,18 @@ requests>=2.31.0
 pandas>=2.0.0
 numpy>=1.24.0
 beautifulsoup4
+google-search-results
+
+# LLM and LangChain dependencies
+langchain>=0.1.0
+langchain-core>=0.1.0
+pydantic>=2.0.0
+
+# LLM Providers (install based on your choice)
+langchain-openai
+langchain-google-genai
+# langchain-anthropic>=0.0.5    # For Anthropic (claude-3, etc.)
+# langchain-community>=0.0.1    # For Ollama, HuggingFace, etc.
+
+# Environment variable loader
+python-dotenv>=1.0.0

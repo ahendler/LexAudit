@@ -1,4 +1,4 @@
-# LexAudit ⚖️
+# LexAudit
 [![Status](https://img.shields.io/badge/status-under%20development-blue)](https://github.com/seu-usuario/lexaudit)
 [![Python Version](https://img.shields.io/badge/Python%3A%203.13-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -22,10 +22,10 @@ These errors compromise legal certainty, the validity of arguments, and the qual
 
 LexAudit processes a raw document through an automatic 4-stage validation pipeline, generating a clear and auditable audit report for each citation found.
 
-1.  **[STAGE 1] Extraction (Linker):** The system reads the document and identifies all mentions of regulations (e.g., "Art. 5º da CF") and jurisprudence (e.g., "REsp nº 1.234.567"). This stage uses specialized NER models, replacing the old LexML Linker.
-2.  **[STAGE 2] Resolution:** Each textual mention is converted into a canonical identifier (such as a `URN:LEX` for laws or a standard CNJ case number).
-3.  **[STAGE 3] Retrieval:** The system queries official sources (LexML, STF, STJ APIs) to retrieve the *true* and *updated* text of the cited regulation or decision.
-4.  **[STAGE 4] Validation (RAG Agent):** An AI Agent (using RAG) compares the original document text (what the author *claimed*) with the text retrieved from the official source (what the law *actually says*). The agent then classifies the citation (Correct, Outdated, Incorrect, Non-existent) and generates a justification based on evidence.
+1.  **[STAGE 1] Extraction:** The system reads the document and identifies all mentions of regulations (e.g., "Art. 5º da CF") and jurisprudence (e.g., "REsp nº 1.234.567").
+2.  **[STAGE 2] Resolution:** Each textual mention is converted into a canonical identifier (URN:LEX) using an LLM.
+3.  **[STAGE 3] Retrieval:** The system searches Google (via SerpAPI) for official sources and fetches the full text from government websites (planalto.gov.br, normas.leg.br, etc.).
+4.  **[STAGE 4] Validation (RAG Agent):** An AI Agent (using RAG) compares the document text with the retrieved official text, classifying the citation and generating justification.
 
 ## Repository Structure (Suggestion)
 
@@ -45,9 +45,8 @@ lexaudit/
 ├── src/            # Main application source code
 │   └── lexaudit/   # The installable Python package
 │       │
-│       ├── extraction/   # [STAGE 1] Citation extraction modules (Linkers)
-│       ├── resolution/   # [STAGE 2] Resolution modules for URN:LEX
-│       ├── retrieval/    # [STAGE 3] API clients for sources (LexML, STF)
+│       ├── extraction/   # [STAGE 1] Citation extraction modules
+│       ├── retrieval/    # [STAGE 2 & 3] Resolution (LLM) + Retrieval (SerpAPI)
 │       ├── validation/   # [STAGE 4] RAG Agent validation logic
 │       │
 │       ├── prompts/      # Prompt templates used by RAG Agents
@@ -70,36 +69,63 @@ lexaudit/
 └── requirements.txt
 ```
 
-## How to Use
+## Installation
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/seu-usuario/lexaudit.git](https://github.com/seu-usuario/lexaudit.git)
+    git clone https://github.com/ahendler/lexaudit.git
     cd lexaudit
     ```
 
 2.  **Create a virtual environment and install dependencies:**
     ```bash
-    python -m venv venv
-    source venv/bin/activate
+    python3 -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
     pip install -r requirements.txt
     ```
 
-3.  **Configure your API keys:**
+3.  **Install the package in development mode:**
+    ```bash
+    pip install -e .
+    ```
+
+4.  **Configure API keys:**
     * Copy the example environment file:
         ```bash
-        cp config/.env.example .env
+        cp config/.env.example config/.env
         ```
-    * Edit the `.env` file and add your keys (e.g., `OPENAI_API_KEY`).
+    * Edit `config/.env` to set your API keys:
+        ```bash
+        LLM_PROVIDER=gemini  # or anthropic, ollama, etc.
+        LLM_MODEL=gemini-2.5-flash
+        GOOGLE_API_KEY=your-gemini-key-here
+        SERPAPI_API_KEY=your-serpapi-key-here  # Get free key at serpapi.com
+        ```
 
-## How to Use (Example)
+## Running the Pipeline
 
-The pipeline can be invoked programmatically. (This is a conceptual example of how the `src/lexaudit` package will be used):
+After installation, you can run the pipeline in multiple ways:
+
+**Option 1 - As a command (after installing with `pip install -e .`):**
+```bash
+lexaudit
+```
+
+**Option 2 - As a Python module:**
+```bash
+python3 -m lexaudit.main
+```
+
+The pipeline will load sample data from `data/cleaned/stj/sample_10_with_fulltext.json` and process citations through extraction, resolution, and retrieval stages.
+
+## How to Use (Programmatic Example)
+
+The pipeline can be invoked programmatically:
 
 ```python
 from lexaudit.core.pipeline import LexAuditPipeline
 
-# Load the pipeline (it will instantiate the Linker, Resolver, etc.)
+# Load the pipeline (it will instantiate the Extractor, Retriever, Resolver)
 auditor = LexAuditPipeline()
 
 document_text = """
@@ -110,29 +136,16 @@ Conforme a Lei nº 8.112 de 1990, em seu Art. 999, o servidor será
 aposentado compulsoriamente.
 """
 
-# Execute the complete audit
+# Execute the complete audit (extraction → resolution → retrieval)
 report = auditor.run(document_text)
 
-# Print the validation report
-for validation in report.validations:
-    print(f"Citation: {validation.citation.original_text}")
-    print(f"Status: {validation.status}")  # E.g.: CORRECT, NON-EXISTENT
-    print(f"Justification: {validation.justification}\n")
-
+# Process the results
+for citation in report['extracted_citations']:
+    print(f"Citation: {citation.original_text}")
+    print(f"Type: {citation.citation_type}")
+    print(f"Normalized: {citation.normalized_reference}\n")
 ```
 
-### Expected Output:
-
-```
-Citação: Art. 5º, inciso XI, da Constituição Federal
-Status: CORRETA
-Justificativa: A citação textual "a casa é asilo inviolável do indivíduo" corresponde exatamente ao texto oficial do Art. 5º, XI, da CF/88.
-
-Citação: Art. 999, da Lei nº 8.112 de 1990
-Status: INEXISTENTE
-Justificativa: A referência "Art. 999" não foi encontrada na Lei nº 8.112/1990. O último artigo desta lei é o Art. 253.
-```
-
-## 📜 License
+## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.

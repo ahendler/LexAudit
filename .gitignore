@@ -3,11 +3,15 @@ venv/
 env/
 ENV/
 .venv/
-.env/
+
+# config files
+config/.env
 
 # Python
 wheels/
 *.egg
+*.egg-info/
+*__pycache__/
 
 # Jupyter
 .ipynb_checkpoints
