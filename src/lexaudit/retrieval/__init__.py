@@ -1,5 +1,5 @@
 """LexAudit retrieval module."""
 from .resolver import CitationResolver
-from .client import LegalDocumentRetriever
+from .retriever import LegalDocumentRetriever
 
 __all__ = ['CitationResolver', 'LegalDocumentRetriever']

@@ -5,7 +5,7 @@ from typing import List
 from .models import DocumentAnalysis, ExtractedCitation
 from ..extraction.parser import CitationExtractor
 from ..retrieval.resolver import CitationResolver
-from ..retrieval.client import LegalDocumentRetriever
+from ..retrieval.retriever import LegalDocumentRetriever
 
 
 class LexAuditPipeline:

@@ -48,12 +48,12 @@ Retorne sua resposta como um objeto JSON com: canonical_id, confidence, reasonin
 FEW_SHOT_EXAMPLES = """
 # Exemplos corretos
 ## Exemplo 1:
-Citação: "Lei n. 9.656/1998"
+Citação: "CP - 040, 2848"
 Saída: {
-  "canonical_id": "urn:lex:br:federal:lei:1998;9656",
+  "canonical_id": "urn:lex:br:federal:decreto.lei:1940-12-07;2848",
   "confidence": 1.0,
-  "reasoning": "Referência legislativa completa com número e ano da lei. Formato padrão URN:LEX aplicado.",
-  "metadata": {"type": "lei", "number": "9656", "year": "1998", "jurisdiction": "federal"}
+  "reasoning": "Referência legislativa completa com número e ano da lei. Necessário adicionar data para identificação do código penal.",
+  "metadata": {"type": "decreto.lei", "number": "2848", "year": "1940", "jurisdiction": "federal"}
 }
 
 ## Exemplo 2:
