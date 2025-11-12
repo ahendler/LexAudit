@@ -96,8 +96,8 @@ lexaudit/
         ```
     * Edit `config/.env` to set your LLM provider and API key:
         ```bash
-        LLM_PROVIDER=openai  # or anthropic, ollama, etc.
-        LLM_MODEL=gpt-4o-mini
+        LLM_PROVIDER=gemini  # or anthropic, ollama, etc.
+        LLM_MODEL=gemini-2.5-flash
         OPENAI_API_KEY=your-key-here
         ```
 

@@ -44,32 +44,6 @@ class CitationResolver:
 
         self.parser = JsonOutputParser(pydantic_object=ResolutionOutput)
 
-    def resolve(self, citation: ExtractedCitation) -> ResolvedCitation:
-        """
-        Resolve a citation to its canonical identifier.
-
-        Args:
-            citation: Extracted citation to resolve
-
-        Returns:
-            Resolved citation with canonical ID
-        """
-
-        return self._resolve_with_llm(citation)
-
-        # except Exception as e:
-        #     print(f"[RESOLVER] Error resolving '{citation.raw_text}': {e}")
-        #     return ResolvedCitation(
-        #         extracted_citation=citation,
-        #         canonical_id=None,
-        #         resolution_confidence=0.0,
-        #         resolution_metadata={
-        #             "method": "llm",
-        #             "status": "error",
-        #             "error": str(e)
-        #         }
-        #     )
-
     def resolve_batch(self, citations: List[ExtractedCitation]) -> List[ResolvedCitation]:
         """
         Resolve multiple citations.
@@ -94,7 +68,7 @@ class CitationResolver:
 
         return resolved
 
-    def _resolve_with_llm(self, citation: ExtractedCitation) -> ResolvedCitation:
+    def resolve(self, citation: ExtractedCitation) -> ResolvedCitation:
         """
         Resolve a single citation using the LLM.
 
