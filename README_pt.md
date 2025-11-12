@@ -22,10 +22,10 @@ Esses erros comprometem a segurança jurídica, a validade de argumentos e a qua
 
 O LexAudit processa um documento bruto através de um pipeline automático de validação em 4 etapas, gerando um relatório de auditoria claro e auditável para cada citação encontrada.
 
-1.  **[ETAPA 1] Extração (Linker):** O sistema lê o documento e identifica todas as menções a normas (ex: "Art. 5º da CF") e jurisprudência (ex: "REsp nº 1.234.567"). Esta etapa usa modelos de NER especializados, substituindo o antigo LexML Linker.
-2.  **[ETAPA 2] Resolução:** Cada menção textual é convertida em um identificador canônico (como uma `URN:LEX` para leis ou um número de processo padrão CNJ).
-3.  **[ETAPA 3] Recuperação (Retrieval):** O sistema consulta as fontes oficiais (APIs do LexML, STF, STJ) para buscar o texto *verdadeiro* e *atualizado* da norma ou da decisão citada.
-4.  **[ETAPA 4] Validação (RAG Agent):** Um Agente de IA (usando RAG) compara o texto original do documento (o que o autor *afirmou*) com o texto recuperado da fonte oficial (o que a lei *realmente diz*). O agente então classifica a citação (Correta, Desatualizada, Incorreta, Inexistente) e gera uma justificativa baseada na evidência.
+1.  **[ETAPA 1] Extração:** O sistema lê o documento e identifica todas as menções a normas (ex: "Art. 5º da CF") e jurisprudência (ex: "REsp nº 1.234.567").
+2.  **[ETAPA 2] Resolução:** Cada menção textual é convertida em um identificador canônico (URN:LEX) usando um LLM.
+3.  **[ETAPA 3] Recuperação:** O sistema busca no Google (via SerpAPI) por fontes oficiais e baixa o texto completo de sites governamentais (planalto.gov.br, normas.leg.br, etc.).
+4.  **[ETAPA 4] Validação (Agente RAG):** Um Agente de IA (usando RAG) compara o texto do documento com o texto oficial recuperado, classificando a citação e gerando justificativa.
 
 ## Estrutura do Repositório (Sugestão)
 
@@ -45,9 +45,8 @@ lexaudit/
 ├── src/            # Código-fonte principal da aplicação
 │   └── lexaudit/   # O pacote Python instalável
 │       │
-│       ├── extraction/   # [ETAPA 1] Módulos de extração de citações (Linkers)
-│       ├── resolution/   # [ETAPA 2] Módulos de resolução para URN:LEX
-│       ├── retrieval/    # [ETAPA 3] Clientes de API para fontes (LexML, STF)
+│       ├── extraction/   # [ETAPA 1] Módulos de extração de citações
+│       ├── retrieval/    # [ETAPA 2 & 3] Resolução (LLM) + Recuperação (SerpAPI)
 │       ├── validation/   # [ETAPA 4] Lógica do Agente RAG de validação
 │       │
 │       ├── prompts/      # Templates de prompts usados pelos Agentes RAG
@@ -88,9 +87,15 @@ lexaudit/
 3.  **Configure suas chaves de API:**
     * Copie o arquivo de exemplo de ambiente:
         ```bash
-        cp config/.env.example .env
+        cp config/.env.example config/.env
         ```
-    * Edite o arquivo `.env` e adicione suas chaves (ex: `OPENAI_API_KEY`).
+    * Edite o arquivo `config/.env` e adicione suas chaves:
+        ```bash
+        LLM_PROVIDER=gemini
+        LLM_MODEL=gemini-2.5-flash
+        GOOGLE_API_KEY=sua-chave-gemini-aqui
+        SERPAPI_API_KEY=sua-chave-serpapi-aqui  # Chave grátis em serpapi.com
+        ```
 
 ## Como Usar (Exemplo)
 

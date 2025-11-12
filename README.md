@@ -22,10 +22,10 @@ These errors compromise legal certainty, the validity of arguments, and the qual
 
 LexAudit processes a raw document through an automatic 4-stage validation pipeline, generating a clear and auditable audit report for each citation found.
 
-1.  **[STAGE 1] Extraction (Linker):** The system reads the document and identifies all mentions of regulations (e.g., "Art. 5º da CF") and jurisprudence (e.g., "REsp nº 1.234.567"). This stage uses specialized NER models, replacing the old LexML Linker.
-2.  **[STAGE 2] Resolution:** Each textual mention is converted into a canonical identifier (such as a `URN:LEX` for laws or a standard CNJ case number).
-3.  **[STAGE 3] Retrieval:** The system queries official sources (LexML, STF, STJ APIs) to retrieve the *true* and *updated* text of the cited regulation or decision.
-4.  **[STAGE 4] Validation (RAG Agent):** An AI Agent (using RAG) compares the original document text (what the author *claimed*) with the text retrieved from the official source (what the law *actually says*). The agent then classifies the citation (Correct, Outdated, Incorrect, Non-existent) and generates a justification based on evidence.
+1.  **[STAGE 1] Extraction:** The system reads the document and identifies all mentions of regulations (e.g., "Art. 5º da CF") and jurisprudence (e.g., "REsp nº 1.234.567").
+2.  **[STAGE 2] Resolution:** Each textual mention is converted into a canonical identifier (URN:LEX) using an LLM.
+3.  **[STAGE 3] Retrieval:** The system searches Google (via SerpAPI) for official sources and fetches the full text from government websites (planalto.gov.br, normas.leg.br, etc.).
+4.  **[STAGE 4] Validation (RAG Agent):** An AI Agent (using RAG) compares the document text with the retrieved official text, classifying the citation and generating justification.
 
 ## Repository Structure (Suggestion)
 
@@ -45,8 +45,8 @@ lexaudit/
 ├── src/            # Main application source code
 │   └── lexaudit/   # The installable Python package
 │       │
-│       ├── extraction/   # [STAGE 1] Citation extraction modules (Linkers)
-│       ├── retrieval/    # [STAGE 3] API clients for sources (LexML, STF) - merged with resolution
+│       ├── extraction/   # [STAGE 1] Citation extraction modules
+│       ├── retrieval/    # [STAGE 2 & 3] Resolution (LLM) + Retrieval (SerpAPI)
 │       ├── validation/   # [STAGE 4] RAG Agent validation logic
 │       │
 │       ├── prompts/      # Prompt templates used by RAG Agents
@@ -89,16 +89,17 @@ lexaudit/
     pip install -e .
     ```
 
-4.  **Configure LLM settings:**
+4.  **Configure API keys:**
     * Copy the example environment file:
         ```bash
         cp config/.env.example config/.env
         ```
-    * Edit `config/.env` to set your LLM provider and API key:
+    * Edit `config/.env` to set your API keys:
         ```bash
         LLM_PROVIDER=gemini  # or anthropic, ollama, etc.
         LLM_MODEL=gemini-2.5-flash
-        OPENAI_API_KEY=your-key-here
+        GOOGLE_API_KEY=your-gemini-key-here
+        SERPAPI_API_KEY=your-serpapi-key-here  # Get free key at serpapi.com
         ```
 
 ## Running the Pipeline
@@ -115,7 +116,7 @@ lexaudit
 python3 -m lexaudit.main
 ```
 
-The pipeline will load sample data from `data/cleaned/stj/sample_10_with_fulltext.json` and process the legal citations through the extraction, retrieval, and resolution stages.
+The pipeline will load sample data from `data/cleaned/stj/sample_10_with_fulltext.json` and process citations through extraction, resolution, and retrieval stages.
 
 ## How to Use (Programmatic Example)
 
@@ -135,7 +136,7 @@ Conforme a Lei nº 8.112 de 1990, em seu Art. 999, o servidor será
 aposentado compulsoriamente.
 """
 
-# Execute the complete audit (currently runs extraction placeholder + retrieval + resolution)
+# Execute the complete audit (extraction → resolution → retrieval)
 report = auditor.run(document_text)
 
 # Process the results
