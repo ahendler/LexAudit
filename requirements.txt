@@ -9,6 +9,7 @@ google-search-results
 langchain>=0.1.0
 langchain-core>=0.1.0
 pydantic>=2.0.0
+pydantic-settings>=2.2.1
 
 # LLM Providers (install based on your choice)
 langchain-openai
