@@ -28,7 +28,7 @@ Sua tarefa é devolver UMA lista revisada de citações, seguindo as regras abai
   - Deve ser claro, legível e completo.
   - Modifique apenas se grandes mudanças forem necessárias.
 - citation_type:
-  - Use somente: "legislação" ou "jurisprudência" (valor obrigatório).
+  - Sempre preenchido; use descrições curtas (ex.: "Lei federal", "jurisprudência", "Constituição Federal").
 - confidence:
   - Valor entre 0.0 e 1.0, proporcional à clareza e certeza da citação.
 - justification:
@@ -79,21 +79,21 @@ Propostas (JSON):
     {{
       "identified_string": "Súmula 7/STJ",
       "formatted_name": "Súmula 7/STJ",
-      "citation_type": "jurisprudência",
+      "citation_type": "Súmula do STJ",
       "confidence": 0.6,
       "justification": "súmula mencionada"
     }},
     {{
       "identified_string": "REsp 1.068.041/PR ",
       "formatted_name": "REsp 1068041 PR",
-      "citation_type": "jurisprudência",
+      "citation_type": "Recurso Especial",
       "confidence": 0.7,
       "justification": "precedente mencionado"
     }},
     {{
       "identified_string": "Lei 9.784",
       "formatted_name": "Lei 9.784",
-      "citation_type": "legislação",
+      "citation_type": "Lei federal",
       "confidence": 0.5,
       "justification": "lei mencionada"
     }},
@@ -113,21 +113,21 @@ Saída esperada:
     {{
       "identified_string": "Súmula 7/STJ",
       "formatted_name": "Súmula 7 do Superior Tribunal de Justiça",
-      "citation_type": "jurisprudência",
+      "citation_type": "Súmula",
       "confidence": 0.9,
       "justification": "Súmula do STJ citada explicitamente no trecho."
     }},
     {{
       "identified_string": "REsp 1.068.041/PR",
       "formatted_name": "Recurso Especial 1.068.041/PR (STJ)",
-      "citation_type": "jurisprudência",
+      "citation_type": "Recurso Especial",
       "confidence": 0.85,
       "justification": "Recurso especial do STJ mencionado no trecho."
     }},
     {{
       "identified_string": "Lei 9.784/1999",
       "formatted_name": "Lei nº 9.784, de 1999",
-      "citation_type": "legislação",
+      "citation_type": "Lei federal",
       "confidence": 0.9,
       "justification": "Lei federal citada literalmente no trecho."
     }}

@@ -14,7 +14,7 @@ Instruções de saída (JSON obrigatório e válido):
   mais precisa possível o documento/ato jurídico referenciado (e, quando aplicável, a parte: artigo,
   inciso, parágrafo etc.). Este texto será usado para busca na internet depois. Exemplos de boa formatação: "Constituição Federal de 1988, art. 5º, inciso XXXV"; "Lei nº 9.784, de 1999 (Processo Administrativo Federal)";
   "Súmula 7 do Superior Tribunal de Justiça"; "Recurso Especial 1.068.041/PR (STJ)".
-- citation_type (str): categoria OBRIGATÓRIA, somente um destes valores exatos: "legislação" ou "jurisprudência".
+  - citation_type (str): Tipo genérico do documento citado (ex.: "Constituição Federal", "Lei complementar", "jurisprudência").
   - confidence (float): confiança entre 0.0 e 1.0. Exemplo:
   - justification (str): breve justificativa da identificação. Exemplo: 
 - Se não houver citações válidas, retorne {{"citations": []}}.
@@ -27,8 +27,7 @@ Boas práticas:
 - formatted_name: expanda abreviações (ex.: "CF/88" -> "Constituição Federal de 1988"); inclua órgão/ano quando conhecido; inclua artigo/inciso quando fizer parte do referido.
 - Não invente dados não presentes no trecho (ex.: números/anos/órgãos ausentes).
 - Evite duplicatas: se o mesmo ato aparece mais de uma vez no trecho, unifique em uma entrada bem formada.
-- Use categorias simples e consistentes: "legislação" ou "jurisprudência" (nunca use null).
-- Use português, com acentuação correta.
+- Use categorias simples e consistentes para o citation_type: "legislação" ou "jurisprudência" (nunca use null).
 
 
 Exemplos (few-shot):
@@ -40,14 +39,14 @@ Saída esperada:
     {{
       "identified_string": "art. 5º, inciso XXXV, da CF/88",
       "formatted_name": "Constituição Federal de 1988, art. 5º, inciso XXXV",
-      "citation_type": "legislação",
+      "citation_type": "Constituição Federal",
       "confidence": 0.95,
       "justification": "Menção explícita à CF/88 e ao inciso indicado."
     }},
     {{
       "identified_string": "Lei 9.784/1999",
       "formatted_name": "Lei nº 9.784, de 1999 (Processo Administrativo Federal)",
-      "citation_type": "legislação",
+      "citation_type": "Lei federal",
       "confidence": 0.90,
       "justification": "Lei federal citada textualmente no trecho."
     }}
@@ -61,14 +60,14 @@ Saída esperada:
     {{
       "identified_string": "Súmula 7/STJ",
       "formatted_name": "Súmula 7 do Superior Tribunal de Justiça",
-      "citation_type": "jurisprudência",
+      "citation_type": "Súmula",
       "confidence": 0.92,
       "justification": "Súmula do STJ mencionada diretamente."
     }},
     {{
       "identified_string": "REsp 1.068.041/PR",
       "formatted_name": "Recurso Especial 1.068.041/PR (STJ)",
-      "citation_type": "jurisprudência",
+      "citation_type": "Recurso Especial",
       "confidence": 0.85,
       "justification": "Precedente do STJ citado no trecho."
     }}

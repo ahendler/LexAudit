@@ -175,8 +175,8 @@ class CitationIdentifier:
             "identified_string": identified_string_value,
         }
         if citation_type is None or str(citation_type).strip() == "":
-            # Enforce presence/valid values early; let Pydantic validate downstream
-            raise ValueError("citation_type must be provided and valid")
+            # Enforce presence early; downstream models expect a descriptive string
+            raise ValueError("citation_type must be provided")
         payload["citation_type"] = citation_type
         if confidence is not None:
             payload["confidence"] = confidence

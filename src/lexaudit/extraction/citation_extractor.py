@@ -11,7 +11,6 @@ from ..core.models import (
 )
 from .detector import CitationDetector
 from .identification import CitationIdentifier
-from .utils import guess_citation_type
 
 
 logger = logging.getLogger(__name__)
@@ -140,7 +139,7 @@ class CitationExtractor:
             citation = ExtractedCitation(
                 identified_string=raw,
                 formatted_name=raw,
-                citation_type=guess_citation_type(raw),
+                citation_type="unknown",
                 confidence=0.0,
                 justification="",
                 context_snippet=raw,

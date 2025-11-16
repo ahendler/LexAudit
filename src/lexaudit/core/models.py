@@ -1,13 +1,10 @@
 """
 Data models for LexAudit pipeline.
 """
-from typing import Optional, List, Dict, Any, Literal
+from typing import Optional, List, Dict, Any
 from enum import Enum
 
 from pydantic import BaseModel, Field
-
-# Strict literal category validated at parse time (Portuguese labels)
-CitationCategory = Literal["legislação", "jurisprudência"]
 
 
 class ValidationStatus(Enum):
@@ -28,9 +25,9 @@ class IdentifiedCitation(BaseModel):
         ...,
         description="Formatted, human-friendly name of the cited document (e.g., 'Federal Constitution of 1988')",
     )
-    citation_type: CitationCategory = Field(
+    citation_type: str = Field(
         ...,
-        description="Categoria: 'legislação' | 'jurisprudência'"
+        description="Descrição livre do tipo de documento (ex.: 'Constituição Federal', 'Lei federal', 'jurisprudência do STJ')"
     )
     confidence: float = Field(
         default=0.0,
@@ -53,8 +50,7 @@ class ExtractedCitation(IdentifiedCitation):
     """Identified citation enriched with positional/context metadata.
 
     This supersedes the previous dataclass-based ExtractedCitation. It keeps the
-    textual fields from identification and adds positional/context info. The
-    category is strictly validated using a Literal type.
+    textual fields from identification and adds positional/context info.
     """
     context_snippet: str = Field(
         ...,

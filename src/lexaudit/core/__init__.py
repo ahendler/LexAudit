@@ -6,7 +6,6 @@ from .models import (
     RetrievedDocument,
     ValidatedCitation,
     DocumentAnalysis,
-    CitationCategory,
 )
 __all__ = [
     'ValidationStatus',
@@ -15,5 +14,4 @@ __all__ = [
     'RetrievedDocument',
     'ValidatedCitation',
     'DocumentAnalysis',
-    'CitationCategory',
 ]
