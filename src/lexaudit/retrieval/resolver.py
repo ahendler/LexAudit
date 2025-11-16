@@ -7,11 +7,10 @@ import json
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.output_parsers import JsonOutputParser
 
-from ..core.models import ExtractedCitation, ResolvedCitation
+from ..core.models import ExtractedCitation, ResolvedCitation, ResolutionOutput
 from ..core.llm_config import create_llm
 from ..prompts.resolution import (
     RESOLUTION_PROMPT,
-    ResolutionOutput,
     FEW_SHOT_EXAMPLES
 )
 
@@ -60,10 +59,10 @@ class CitationResolver:
         for idx, citation in enumerate(citations, 1):
             resolved_citation = self.resolve(citation)
             if resolved_citation.canonical_id:
-                print(f"  [{idx}/{len(citations)}] OK {citation.raw_text} -> {resolved_citation.canonical_id} (conf: {resolved_citation.resolution_confidence:.2f})")
+                print(f"  [{idx}/{len(citations)}] OK {citation.formatted_name} -> {resolved_citation.canonical_id} (conf: {resolved_citation.resolution_confidence:.2f})")
             else:
                 print(
-                    f"  [{idx}/{len(citations)}] FAILED to resolve '{citation.raw_text}'")
+                    f"  [{idx}/{len(citations)}] FAILED to resolve '{citation.formatted_name}'")
             resolved.append(resolved_citation)
 
         return resolved
@@ -79,10 +78,15 @@ class CitationResolver:
             Resolved citation with canonical ID
         """
         # Format the prompt
+        # Prepare citation_type string (supports Enum or string)
+        ct = getattr(citation.citation_type, 'value', None)
+        if ct is None:
+            ct = citation.citation_type or "unknown"
+
         prompt = RESOLUTION_PROMPT.format_messages(
             examples=FEW_SHOT_EXAMPLES,
-            citation_text=citation.raw_text,
-            citation_type=citation.citation_type or "unknown"
+            citation_text=citation.formatted_name,
+            citation_type=ct
         )
 
         # Call LLM

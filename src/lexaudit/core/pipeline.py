@@ -3,7 +3,7 @@ LexAudit Pipeline - Orchestrates the full validation process.
 """
 from typing import List
 from .models import DocumentAnalysis
-from ..extraction.parser import CitationExtractor
+from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
 
@@ -71,7 +71,7 @@ class LexAuditPipeline:
         print("     (showing first 2 resolved citations)")
         for resolved in analysis.resolved_citations:
             print(
-                f"     - {resolved.extracted_citation.raw_text} -> {resolved.canonical_id} (conf: {resolved.resolution_confidence:.2f})"
+                f"     - {resolved.extracted_citation.formatted_name} -> {resolved.canonical_id} (conf: {resolved.resolution_confidence:.2f})"
             )
 
         # STAGE 3: Retrieval
