@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Sequence, Type
 import logging
 
 from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.language_models.chat_models import BaseChatModel
 
 from lexaudit.core.llm_config import create_llm
 from lexaudit.prompts.identification import IDENTIFICATION_PROMPT
@@ -18,9 +19,15 @@ class StructuredLLM:
         *,
         model_name: Optional[str] = None,
         temperature: Optional[float] = None,
+        chat_model: Optional[BaseChatModel] = None,
     ) -> None:
-        self.llm = create_llm(model_name=model_name, temperature=temperature)
-        self.model_name = model_name or getattr(self.llm, "model_name", "default") if self.llm else "unconfigured"
+        if chat_model is not None:
+            self.llm = chat_model
+            resolved_name = model_name or getattr(chat_model, "model_name", "custom")
+        else:
+            self.llm = create_llm(model_name=model_name, temperature=temperature)
+            resolved_name = model_name or getattr(self.llm, "model_name", "default") if self.llm else "unconfigured"
+        self.model_name = resolved_name
         logger.info(
             "[LLM] Initialized chat model class=%s model_name=%s available=%s",
             type(self.llm).__name__ if self.llm else None,
