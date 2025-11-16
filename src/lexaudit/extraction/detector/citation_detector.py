@@ -34,12 +34,10 @@ class CitationDetector:
         linker_cmd: Optional[Sequence[str]] = None,
         context: str = SETTINGS.linker_context,
         timeout: Optional[float] = SETTINGS.linker_timeout,
-        max_gap: int = SETTINGS.dedup_gap_l2,
     ) -> None:
         self._use_linker = use_linker
         self._context = context
         self._timeout = timeout
-        self._max_gap = max_gap
         self._linker_cmd = list(linker_cmd) if linker_cmd is not None else list(SETTINGS.linker_cmd)
 
     def detect(
@@ -50,7 +48,6 @@ class CitationDetector:
         linker_cmd: Optional[Sequence[str]] = None,
         context: Optional[str] = None,
         timeout: Optional[float] = None,
-        max_gap: Optional[int] = None,
     ) -> List[CitationSuspect]:
         suspects, _ = self.detect_with_metrics(
             text,
@@ -58,7 +55,6 @@ class CitationDetector:
             linker_cmd=linker_cmd,
             context=context,
             timeout=timeout,
-            max_gap=max_gap,
         )
         return suspects
 
@@ -70,7 +66,6 @@ class CitationDetector:
         linker_cmd: Optional[Sequence[str]] = None,
         context: Optional[str] = None,
         timeout: Optional[float] = None,
-        max_gap: Optional[int] = None,
     ) -> Tuple[List[CitationSuspect], CitationDetectorMetrics]:
         """
         Run the multi-stage detector and return both suspects and execution metrics.
@@ -81,15 +76,13 @@ class CitationDetector:
         resolved_use_linker = self._use_linker if use_linker is None else use_linker
         resolved_context = self._context if context is None else context
         resolved_timeout = self._timeout if timeout is None else timeout
-        resolved_max_gap = self._max_gap if max_gap is None else max_gap
         resolved_linker_cmd = list(self._linker_cmd if linker_cmd is None else linker_cmd)
 
         t0 = perf_counter()
         logger.info(
-            "Starting detection: use_linker=%s context=%s max_gap=%s",
+            "Starting detection: use_linker=%s context=%s",
             resolved_use_linker,
             resolved_context,
-            resolved_max_gap,
         )
 
         linker_citations: List[CitationSuspect] = []
@@ -128,7 +121,6 @@ class CitationDetector:
             text,
             linker_citations,
             regex_citations,
-            max_gap=resolved_max_gap,
         )
         t_dedup = perf_counter() - td0
         t_total = perf_counter() - t0

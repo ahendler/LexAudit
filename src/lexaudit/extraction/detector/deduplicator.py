@@ -200,7 +200,6 @@ def deduplicate(
     linker_citations: List[CitationSuspect],
     regex_citations: List[CitationSuspect],
     *,
-    max_gap: int = SETTINGS.dedup_gap_l2,
     snippet_min_chars: int = getattr(SETTINGS, "snippet_min_chars", 120),
     snippet_max_chars: Optional[int] = getattr(SETTINGS, "snippet_max_chars", 600),
     prefer_linker_edges: bool = getattr(SETTINGS, "prefer_linker_edges", True),
@@ -218,8 +217,8 @@ def deduplicate(
 
     Returns representatives with snippet in `context_snippet`, sorted by start.
 
-    Note: `max_gap` is accepted for compatibility but proximity is determined by
-    window overlap rather than a fixed gap threshold.
+    Note: proximity is determined by overlap of sentence windows rather than a
+    fixed gap threshold.
     """
     # 1) Sort inputs for stability and drop regex overlapping linker spans
     link_sorted = sorted(linker_citations, key=lambda c: (c.start, c.end))
