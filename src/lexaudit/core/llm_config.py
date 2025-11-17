@@ -4,6 +4,7 @@ LLM configuration and factory for creating LangChain chat models.
 import os
 from typing import Optional
 from langchain_core.language_models.chat_models import BaseChatModel
+from config.settings import SETTINGS
 
 
 def create_llm(
@@ -23,25 +24,24 @@ def create_llm(
     Returns:
         Configured LangChain chat model, or None if configuration fails.
     """
-    provider = provider or os.getenv("LLM_PROVIDER", "openai").lower()
-    model_name = model_name or os.getenv("LLM_MODEL", "gpt-4o-mini")
-    temperature = temperature if temperature is not None else float(
-        os.getenv("LLM_TEMPERATURE", "0"))
+    provider = provider or SETTINGS.llm_provider
+    model_name = model_name or SETTINGS.llm_model
+    temperature = temperature if temperature is not None else SETTINGS.llm_temperature
 
     try:
         if provider == "openai":
             from langchain_openai import ChatOpenAI
-            api_key = os.getenv("OPENAI_API_KEY")
+            api_key = SETTINGS.openai_api_key
             if not api_key:
-                print(f"[LLM_CONFIG] Warning: OPENAI_API_KEY not set")
+                print(f"[LLM_CONFIG] Warning: openai_api_key not set")
                 return None
             return ChatOpenAI(model=model_name, temperature=temperature, api_key=api_key)
 
         elif provider in ["google", "gemini"]:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            api_key = os.getenv("GOOGLE_API_KEY")
+            api_key = SETTINGS.google_api_key
             if not api_key:
-                print(f"[LLM_CONFIG] Warning: GOOGLE_API_KEY not set")
+                print(f"[LLM_CONFIG] Warning: google_api_key not set")
                 return None
             return ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
 

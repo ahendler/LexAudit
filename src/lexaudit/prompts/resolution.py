@@ -2,28 +2,6 @@
 Prompt templates and output schemas for citation resolution.
 """
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
-from typing import Optional
-
-
-class ResolutionOutput(BaseModel):
-    """Structured output for citation resolution."""
-    canonical_id: str = Field(
-        description="Canonical identifier for the legal reference (e.g., 'urn:lex:br:federal:lei:1998;9656')"
-    )
-    confidence: float = Field(
-        description="Confidence score between 0 and 1 indicating certainty of the resolution",
-        ge=0.0,
-        le=1.0
-    )
-    reasoning: str = Field(
-        description="Brief explanation of how the canonical ID was determined"
-    )
-    metadata: Optional[dict] = Field(
-        default=None,
-        description="Additional metadata extracted from the citation"
-    )
-
 
 # TODO: Refinar few-shot examples e prompt
 RESOLUTION_SYSTEM_PROMPT = """

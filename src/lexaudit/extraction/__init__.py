@@ -1,4 +1,9 @@
-"""LexAudit extraction module."""
-from .parser import CitationExtractor
+"""Extraction package.
 
-__all__ = ['CitationExtractor']
+Submodules:
+- citation_extractor: high-level orchestrator
+- detector: low-level detection (regex/linker)
+- identification: classification/enrichment stage
+"""
+
+__all__ = []
