@@ -31,40 +31,40 @@ class CitationExtractor:
         self.identifier = identifier or CitationIdentifier()
 
     def extract_from_text(self, text: str) -> List[ExtractedCitation]:
-        logger.info("[Extractor] Starting pipeline (text_len=%d)", len(text))
+        logger.info("Starting pipeline (text_len=%d)", len(text))
 
         # Detect suspects
         suspects = self.detector.detect(text)
-        logger.info("[Extractor] Detector returned %d suspects", len(suspects))
+        logger.info("Detector returned %d suspects", len(suspects))
         if not suspects:
-            logger.info("[Extractor] No suspects detected; returning empty result")
+            logger.info("No suspects detected; returning empty result")
             return []
 
         # Split suspects by type
         regex_suspects = [s for s in suspects if s.detector_type == "regex"]
         linker_detections = [s for s in suspects if s.detector_type == "linker"]
         logger.info(
-            "[Extractor] Split suspects: regex=%d linker=%d",
+            "Split suspects: regex=%d linker=%d",
             len(regex_suspects),
             len(linker_detections),
         )
 
         # Identify citations for regex suspects only
         logger.info(
-            "[Extractor] Running identification for %d regex suspects", len(regex_suspects)
+            "Running identification for %d regex suspects", len(regex_suspects)
         )
         identified_regexes = (
             self.identifier.identify_citations(text, regex_suspects) if regex_suspects else []
         )
         logger.info(
-            "[Extractor] Identification complete; %d suspects returned with citations",
+            "Identification complete; %d suspects returned with citations",
             len(identified_regexes),
         )
 
         # Combine all suspects to normalize: regex (identified) + linker (as is)
         suspects_to_normalize = identified_regexes + linker_detections
         logger.info(
-            "[Extractor] Normalizing %d suspects (regex+linker)", len(suspects_to_normalize)
+            "Normalizing %d suspects (regex+linker)", len(suspects_to_normalize)
         )
 
         extracted: List[ExtractedCitation] = []
@@ -79,7 +79,7 @@ class CitationExtractor:
                     continue
 
         logger.info(
-            "[Extractor] Produced %d extracted citations", len(extracted)
+            "Produced %d extracted citations", len(extracted)
         )
 
         return extracted
@@ -117,7 +117,7 @@ class CitationExtractor:
         try:
             return ExtractedCitation(**payload)
         except Exception as exc:
-            logger.warning("[Extractor] Invalid citation payload skipped: %s", exc)
+            logger.warning("Invalid citation payload skipped: %s", exc)
             return None
 
 

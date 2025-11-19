@@ -25,6 +25,8 @@ class LexAuditSettings(BaseSettings):
     serpapi_api_key: str = ""
     google_api_key: str = ""
     openai_api_key: str = ""
+    # Logging
+    logging_level: str = "INFO"
 
 
 

@@ -2,10 +2,14 @@
 Main entry point for LexAudit - Load data and run pipeline.
 """
 import json
+import logging
 from pathlib import Path
 from typing import List, Dict
 from lexaudit.core.pipeline import LexAuditPipeline
 from dotenv import load_dotenv
+from config.settings import SETTINGS
+
+logger = logging.getLogger(__name__)
 
 
 def load_stj_sample(file_path: str) -> List[Dict]:
@@ -44,52 +48,55 @@ def main():
     load_dotenv(Path(__file__).parent.parent.parent / "config" / ".env")
 
     """Main execution function."""
-    print("=" * 80)
-    print("LexAudit - Legal Citation Validation Pipeline")
-    print("=" * 80)
-    print()
+    # Configure logging from settings
+    level_name = getattr(SETTINGS, "logging_level", "INFO")
+    level = getattr(logging, level_name.upper(), logging.INFO)
+    logging.basicConfig(level=level)
+    logger.info("%s", "=" * 80)
+    logger.info("LexAudit - Legal Citation Validation Pipeline")
+    logger.info("%s", "=" * 80)
+    logger.info("")
 
     # Configuration
     data_path = Path(__file__).parent.parent.parent / "data" / \
         "cleaned" / "stj" / "sample_10_with_fulltext.json"
 
-    print(f"Loading data from: {data_path}")
-    print()
+    logger.info("Loading data from: %s", data_path)
+    logger.info("")
 
     # Load data
     try:
         documents = load_stj_sample(str(data_path))
-        print(f"Loaded {len(documents)} documents")
-        print()
+        logger.info("Loaded %d documents", len(documents))
+        logger.info("")
     except Exception as e:
-        print(f"ERROR: Failed to load data: {e}")
+        logger.error("Failed to load data: %s", e)
         return
 
     # Initialize pipeline
-    print("Initializing pipeline...")
+    logger.info("Initializing pipeline...")
     pipeline = LexAuditPipeline()
-    print()
+    logger.info("")
 
     # Process first document as test
-    print("Processing first document as test...")
-    print("-" * 80)
+    logger.info("Processing first document as test...")
+    logger.info("%s", "-" * 80)
 
     if documents:
         first_doc = documents[0]
-        print(f"Document ID: {first_doc['id']}")
-        print(f"Process Number: {first_doc['numero_processo']}")
-        print(
-            f"Number of legislative references: {len(first_doc['citations'])}")
-        print()
+        logger.info("Document ID: %s", first_doc['id'])
+        logger.info("Process Number: %s", first_doc['numero_processo'])
+        logger.info("Number of legislative references: %d", len(first_doc['citations']))
+        logger.info("")
 
         # Show first few citations
-        print("First 3 citations:")
+        logger.info("First 3 citations:")
         for i, citation in enumerate(first_doc['citations'][:3], 1):
             # Truncate long citations
             citation_preview = citation[:100] + \
                 "..." if len(citation) > 100 else citation
-            print(f"  {i}. {citation_preview}")
-        print()
+            logger.info("  %d. %s", i, citation_preview)
+        logger.info("")
 
         # Run pipeline
         result = pipeline.process_document(
@@ -97,13 +104,13 @@ def main():
             pre_extracted_citations=first_doc['citations']
         )
 
-        print()
-        print("=" * 80)
-        print("Pipeline execution completed!")
-        print(f"Results: {result}")
-        print("=" * 80)
+        logger.info("")
+        logger.info("%s", "=" * 80)
+        logger.info("Pipeline execution completed!")
+        logger.info("Results: %s", result)
+        logger.info("%s", "=" * 80)
     else:
-        print("No documents found in the data file.")
+        logger.error("No documents found in the data file.")
 
 
 if __name__ == "__main__":

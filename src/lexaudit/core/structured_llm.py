@@ -29,7 +29,7 @@ class StructuredLLM:
             resolved_name = model_name or getattr(self.llm, "model_name", "default") if self.llm else "unconfigured"
         self.model_name = resolved_name
         logger.info(
-            "[LLM] Initialized chat model class=%s model_name=%s available=%s",
+            "Initialized chat model class=%s model_name=%s available=%s",
             type(self.llm).__name__ if self.llm else None,
             self.model_name,
             self.llm is not None,
@@ -55,14 +55,14 @@ class StructuredLLM:
         ch = self.chain(prompt, schema_model)
         if ch is not None:
             logger.info(
-                "[LLM] Invoking structured chain (model=%s) with keys=%s",
+                "Invoking structured chain (model=%s) with keys=%s",
                 self.model_name,
                 list(values.keys()),
             )
             result = ch.invoke(values)
             try:
                 logger.info(
-                    "[LLM] Structured output: %s",
+                    "Structured output: %s",
                     result.model_dump_json(ensure_ascii=False),
                 )
             except Exception:
@@ -71,15 +71,15 @@ class StructuredLLM:
         # Fallback
         messages = prompt.format_messages(**values)
         logger.info(
-            "[LLM] Invoking fallback chain (model=%s) with keys=%s",
+            "Invoking fallback chain (model=%s) with keys=%s",
             self.model_name,
             list(values.keys()),
         )
         response = self.llm.invoke(messages)
         try:
-            logger.info("[LLM] Raw response: %s", getattr(response, "content", ""))
+            logger.info("Raw response: %s", getattr(response, "content", ""))
         except Exception:
-            logger.debug("[LLM] Received response")
+            logger.debug("Received response")
         parser = JsonOutputParser(pydantic_object=schema_model)
         parsed = parser.parse(response.content)
         return schema_model.model_validate(parsed)

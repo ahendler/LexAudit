@@ -3,11 +3,14 @@ Retrieval client for fetching legal documents from official sources.
 """
 from typing import Optional
 import os
+import logging
 import requests
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
 from ..core.models import ResolvedCitation, RetrievedDocument
+
+logger = logging.getLogger(__name__)
 
 
 class LegalDocumentRetriever:
@@ -56,7 +59,7 @@ class LegalDocumentRetriever:
         Returns:
             Retrieved document or None if not found
         """
-        print(f"  [RETRIEVER] Searching for: {canonical_id}")
+        logger.info("Searching for: %s", canonical_id)
 
         # Priority order: planalto.gov.br is best for laws, then normas.leg.br/lexml for URN resolution
         official_domains = [
@@ -72,7 +75,7 @@ class LegalDocumentRetriever:
             # Search using SerpAPI
             api_key = os.getenv('SERPAPI_API_KEY')
             if not api_key:
-                print("  [RETRIEVER] Warning: SERPAPI_API_KEY not set in environment")
+                logger.warning("SERPAPI_API_KEY not set in environment")
                 return None
 
             params = {
@@ -85,10 +88,10 @@ class LegalDocumentRetriever:
             results = search.get_dict()
             organic_results = results.get("organic_results", [])
 
-            print(f"  [RETRIEVER] Found {len(organic_results)} search results")
+            logger.info("Found %d search results", len(organic_results))
             for i, result in enumerate(organic_results):
                 url = result.get('link', '')
-                print(f"    [{i+1}] {url}")
+                logger.debug("[%d] %s", i + 1, url)
 
             # Try each official domain in priority order
             for domain in official_domains:
@@ -96,7 +99,7 @@ class LegalDocumentRetriever:
                     url = result.get('link', '')
 
                     if domain in url:
-                        print(f"  [RETRIEVER] Using official link: {url}")
+                        logger.info("Using official link: %s", url)
 
                         # Fetch the actual content
                         response = self.session.get(url, timeout=15)
@@ -114,10 +117,10 @@ class LegalDocumentRetriever:
 
                         # Skip if content is too short (likely a redirect or error page)
                         if len(text) < 500:
-                            print(f"  [RETRIEVER] Content too short ({len(text)} chars), trying next result...")
+                            logger.warning("Content too short (%d chars), trying next result...", len(text))
                             continue
 
-                        print(f"  [RETRIEVER] Retrieved {len(text)} characters")
+                        logger.info("Retrieved %d characters", len(text))
 
                         return RetrievedDocument(
                             canonical_id=canonical_id,
@@ -130,11 +133,11 @@ class LegalDocumentRetriever:
                             }
                         )
 
-            print("  [RETRIEVER] No official links found")
+            logger.warning("No official links found")
             return None
 
         except Exception as e:
-            print(f"  [RETRIEVER] Error: {e}")
+            logger.error("Error: %s", e)
             return None
 
     # NOT WORKING YET
@@ -160,7 +163,7 @@ class LegalDocumentRetriever:
             'maximumRecords': '1'
         }
 
-        print(f"  [RETRIEVER] Querying LexML API for: {canonical_id}")
+        logger.info("Querying LexML API for: %s", canonical_id)
 
         response = self.session.get(
             self.LEXML_SRU_BASE, params=params, timeout=10)
@@ -179,7 +182,7 @@ class LegalDocumentRetriever:
         # Check if we got results
         num_records = root.find('.//srw:numberOfRecords', ns)
         if num_records is None or int(num_records.text) == 0:
-            print(f"  [RETRIEVER] No results found for {canonical_id}")
+            logger.warning("No results found for %s", canonical_id)
             return None
 
         # Extract record data
@@ -211,7 +214,7 @@ class LegalDocumentRetriever:
         # Build result
         full_text = f"{title}\n\n{description}" if description else title
 
-        print(f"  [RETRIEVER] Found document: {title[:60]}...")
+        logger.info("Found document: %s...", title[:60])
 
         # Save to file for debugging
         with open("retrieved_document.txt", "w", encoding="utf-8") as f:

@@ -3,6 +3,7 @@ Citation resolution module.
 Converts textual citations to canonical identifiers (URN:LEX) using LLM.
 """
 from typing import Optional, List
+import logging
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from ..core.models import ExtractedCitation, ResolvedCitation, ResolutionOutput
@@ -49,16 +50,16 @@ class CitationResolver:
         Returns:
             List of resolved citations
         """
-        print(f"[RESOLVER] Resolving {len(citations)} citations...")
+        logger = logging.getLogger(__name__)
+        logger.info("Resolving %d citations...", len(citations))
         resolved = []
 
         for idx, citation in enumerate(citations, 1):
             resolved_citation = self.resolve(citation)
             if resolved_citation.canonical_id:
-                print(f"  [{idx}/{len(citations)}] OK {citation.formatted_name} -> {resolved_citation.canonical_id} (conf: {resolved_citation.resolution_confidence:.2f})")
+                logger.info("  [%d/%d] OK %s -> %s (conf: %.2f)", idx, len(citations), citation.formatted_name, resolved_citation.canonical_id, resolved_citation.resolution_confidence)
             else:
-                print(
-                    f"  [{idx}/{len(citations)}] FAILED to resolve '{citation.formatted_name}'")
+                logger.warning("  [%d/%d] FAILED to resolve '%s'", idx, len(citations), citation.formatted_name)
             resolved.append(resolved_citation)
 
         return resolved

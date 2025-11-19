@@ -2,6 +2,7 @@
 LLM configuration and factory for creating LangChain chat models.
 """
 import os
+import logging
 from typing import Optional
 from langchain_core.language_models.chat_models import BaseChatModel
 from config.settings import SETTINGS
@@ -33,7 +34,7 @@ def create_llm(
             from langchain_openai import ChatOpenAI
             api_key = SETTINGS.openai_api_key
             if not api_key:
-                print(f"[LLM_CONFIG] Warning: openai_api_key not set")
+                logging.getLogger(__name__).warning("[LLM_CONFIG] openai_api_key not set")
                 return None
             return ChatOpenAI(model=model_name, temperature=temperature, api_key=api_key)
 
@@ -41,7 +42,7 @@ def create_llm(
             from langchain_google_genai import ChatGoogleGenerativeAI
             api_key = SETTINGS.google_api_key
             if not api_key:
-                print(f"[LLM_CONFIG] Warning: google_api_key not set")
+                logging.getLogger(__name__).warning("[LLM_CONFIG] google_api_key not set")
                 return None
             return ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
 
@@ -49,7 +50,7 @@ def create_llm(
             from langchain_anthropic import ChatAnthropic
             api_key = os.getenv("ANTHROPIC_API_KEY")
             if not api_key:
-                print(f"[LLM_CONFIG] Warning: ANTHROPIC_API_KEY not set")
+                logging.getLogger(__name__).warning("[LLM_CONFIG] ANTHROPIC_API_KEY not set")
                 return None
             return ChatAnthropic(model=model_name, temperature=temperature, api_key=api_key)
 
@@ -58,10 +59,11 @@ def create_llm(
             return ChatOllama(model=model_name, temperature=temperature)
 
         else:
-            print(f"[LLM_CONFIG] Warning: Unknown provider '{provider}'")
+            logging.getLogger(__name__).warning("[LLM_CONFIG] Unknown provider '%s'", provider)
             return None
 
     except ImportError as e:
-        print(f"[LLM_CONFIG] Warning: Could not import {provider} client: {e}")
-        print(f"[LLM_CONFIG] Install with: pip install langchain-{provider}")
+        logger = logging.getLogger(__name__)
+        logger.warning("[LLM_CONFIG] Could not import %s client: %s", provider, e)
+        logger.info("[LLM_CONFIG] Install with: pip install langchain-%s", provider)
         return None

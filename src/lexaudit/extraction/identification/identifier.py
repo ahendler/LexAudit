@@ -40,7 +40,6 @@ class CitationIdentifier:
             self.llm_service.available,
         )
 
-
     def identify_citations(
         self,
         text: str,
@@ -55,14 +54,14 @@ class CitationIdentifier:
 
         processed: List[CitationSuspect] = []
         logger.info(
-            "[Identifier] Starting identification for %d suspects (review=%s)",
+            "Starting identification for %d suspects (review=%s)",
             len(suspects),
             self.enable_review,
         )
         for suspect in suspects:
             t0 = perf_counter()
             logger.info(
-                "[Identifier] Identifying suspect span=(%d,%d) len=%d",
+                "Identifying suspect span=(%d,%d) len=%d",
                 suspect.start,
                 suspect.end,
                 len(suspect.context_snippet or ""),
@@ -72,24 +71,25 @@ class CitationIdentifier:
                 identified_suspect = self._run_reviewer_agent(identified_suspect)
             dt = perf_counter() - t0
             logger.info(
-                "[Identifier] Finished suspect (%d citations) in %.2fs",
+                "Finished suspect (%d citations) in %.2fs",
                 len(identified_suspect.identified_citations or []),
                 dt,
             )
             processed.append(identified_suspect)
 
-        logger.info("[Identifier] Completed identification stage")
+        logger.info("Completed identification stage")
         return processed
+
 
 
     def _run_identifier_agent(self, suspect: CitationSuspect) -> CitationSuspect:
         if not self.llm_service.available:
             suspect.identified_citations = []
-            logger.warning("[Identifier] LLM unavailable; skipping identification")
+            logger.warning("LLM unavailable; skipping identification")
             return suspect
         try:
             logger.info(
-                "[Identifier] Invoking LLM identify (model=%s)", self.model_name
+                "Invoking LLM identify (model=%s)", self.model_name
             )
             output = self.llm_service.identify(suspect.context_snippet)
             built: List[IdentifiedCitation] = []
@@ -105,15 +105,15 @@ class CitationIdentifier:
                         )
                     )
                 except Exception as exc:
-                    logger.warning("[Identifier] Skipping invalid citation item: %s", exc)
+                    logger.warning("Skipping invalid citation item: %s", exc)
             # Log raw structured result
             try:
                 logger.info(
-                    "[Identifier] LLM identify output: %s",
+                    "LLM identify output: %s",
                     output.model_dump_json(ensure_ascii=False),
                 )
             except Exception:
-                logger.info("[Identifier] LLM identify produced %d items", len(getattr(output, "citations", []) or []))
+                logger.info("LLM identify produced %d items", len(getattr(output, "citations", []) or []))
             suspect.identified_citations = built
             return suspect
         except Exception as exc:
@@ -128,11 +128,11 @@ class CitationIdentifier:
         proposals_json = json.dumps([ic.model_dump() for ic in suspect.identified_citations], ensure_ascii=False)
         try:
             logger.info(
-                "[Identifier] Invoking LLM review (model=%s) with %d proposals",
+                "Invoking LLM review (model=%s) with %d proposals",
                 self.model_name,
                 len(suspect.identified_citations),
             )
-            logger.info("[Identifier] Proposals JSON: %s", proposals_json)
+            logger.info("Proposals JSON: %s", proposals_json)
             reviewed_output = self.llm_service.review(
                 suspect.context_snippet,
                 proposals_json,
@@ -140,12 +140,12 @@ class CitationIdentifier:
             reviewed_list: List[IdentifiedCitation] = list(reviewed_output.citations or [])
             try:
                 logger.info(
-                    "[Identifier] LLM review output: %s",
+                    "LLM review output: %s",
                     reviewed_output.model_dump_json(ensure_ascii=False),
                 )
             except Exception:
                 logger.info(
-                    "[Identifier] LLM review produced %d items",
+                    "LLM review produced %d items",
                     len(reviewed_list),
                 )
             if reviewed_list:
