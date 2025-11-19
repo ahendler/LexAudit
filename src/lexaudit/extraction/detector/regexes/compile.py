@@ -23,7 +23,6 @@ from .loose import (
     GENERIC_OTHER_ACT_PATTERN,
     GENERIC_LAW_COLLECTION_PATTERN,
     GENERIC_SUMULA_ORG_PATTERN,
-    LAW_ALIAS_PATTERN,
     MP_GENERIC_YEAR_PATTERN,
     IN_ABBR_PATTERN,
     ORG_SIGLA_NUMBER_PATTERN,
@@ -33,7 +32,6 @@ from .loose import (
     SUMULA_LIST_NUMBERS_PATTERN,
     SUMULA_GENERIC_TOPIC_PATTERN,
     SUMULA_DIRTY_PATTERN,
-    OJ_TST_PATTERN,
     COUNCIL_RESOLUTION_GENERIC_PATTERN,
     REGIMENTO_INTERNO_PATTERN,
     REGIMENTO_SIGLA_PATTERN,
@@ -61,7 +59,7 @@ from .loose import (
     NOTA_TECNICA_ABBR_PATTERN,
     EDITAL_GENERIC_PATTERN,
     ESTATUTO_GENERIC_PATTERN,
-    CONSTITUTION_PATTERN,
+    # CONSTITUTION_PATTERN, Is also in strict
     ARTICLE_LIST_PATTERN,
 )
 
@@ -109,7 +107,6 @@ REFERENCE_PATTERN_SPECS: Dict[str, str] = {
     "judicial_decision_number": JUDICIAL_DECISION_NUMBER_PATTERN,
     "official_manual": OFFICIAL_MANUAL_PATTERN,
     "oj_generic_near_court": OJ_GENERIC_NEAR_COURT_PATTERN,
-    "oj_tst": OJ_TST_PATTERN,
     "parecer_org": PARECER_ORG_PATTERN,
     "parecer_number_org_suffix": PARECER_NUMBER_ORG_SUFFIX_PATTERN,
     "note_tecnica_generic": NOTE_TECNICA_GENERIC_PATTERN,
@@ -117,19 +114,16 @@ REFERENCE_PATTERN_SPECS: Dict[str, str] = {
     "regulamento_interno": REGULAMENTO_INTERNO_PATTERN,
     "policy_privacy": POLICY_PRIVACY_PATTERN,
     "doctrine_citation": DOCTRINE_CITATION_PATTERN,
-    "law_alias": LAW_ALIAS_PATTERN,
     "parecer_generic_org": PARECER_GENERIC_ORG_PATTERN,
     "nota_tecnica_abbr": NOTA_TECNICA_ABBR_PATTERN,
-    "edital_generic": EDITAL_GENERIC_PATTERN,   
+    "edital_generic": EDITAL_GENERIC_PATTERN,
     "estatuto_generic": ESTATUTO_GENERIC_PATTERN,
-    "constitution": CONSTITUTION_PATTERN,
-    "urn_reference": URN_LEXML_PATTERN,
     "article_list": ARTICLE_LIST_PATTERN,
 }
 
 
 def _compile_pattern_groups(
-    groups: Mapping[str, Dict[str, str]]
+    groups: Mapping[str, Dict[str, str]],
 ) -> Tuple[re.Pattern[str], Dict[str, Dict[str, str]]]:
     pattern_fragments: List[str] = []
     metadata: Dict[str, Dict[str, str]] = {}
@@ -163,5 +157,3 @@ __all__ = [
     "LEXML_REFERENCE_REGEX",
     "GROUP_METADATA",
 ]
-
-

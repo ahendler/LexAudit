@@ -80,25 +80,23 @@ class CitationIdentifier:
         logger.info("Completed identification stage")
         return processed
 
-
-
     def _run_identifier_agent(self, suspect: CitationSuspect) -> CitationSuspect:
         if not self.llm_service.available:
             suspect.identified_citations = []
             logger.warning("LLM unavailable; skipping identification")
             return suspect
         try:
-            logger.info(
-                "Invoking LLM identify (model=%s)", self.model_name
-            )
+            logger.info("Invoking LLM identify (model=%s)", self.model_name)
             output = self.llm_service.identify(suspect.context_snippet)
             built: List[IdentifiedCitation] = []
             for item in output.citations:
                 try:
                     built.append(
                         self._build_identified(
-                            identified_string=getattr(item, "identified_string", "") or suspect.suspect_string,
-                            formatted_name=getattr(item, "formatted_name", "") or suspect.suspect_string,
+                            identified_string=getattr(item, "identified_string", "")
+                            or suspect.suspect_string,
+                            formatted_name=getattr(item, "formatted_name", "")
+                            or suspect.suspect_string,
                             citation_type=getattr(item, "citation_type", None),
                             confidence=getattr(item, "confidence", 1.0),
                             justification=getattr(item, "justification", ""),
@@ -113,7 +111,10 @@ class CitationIdentifier:
                     output.model_dump_json(ensure_ascii=False),
                 )
             except Exception:
-                logger.info("LLM identify produced %d items", len(getattr(output, "citations", []) or []))
+                logger.info(
+                    "LLM identify produced %d items",
+                    len(getattr(output, "citations", []) or []),
+                )
             suspect.identified_citations = built
             return suspect
         except Exception as exc:
@@ -121,11 +122,12 @@ class CitationIdentifier:
             suspect.identified_citations = []
             return suspect
 
-
     def _run_reviewer_agent(self, suspect: CitationSuspect) -> CitationSuspect:
         if not self.llm_service.available or not suspect.identified_citations:
             return suspect
-        proposals_json = json.dumps([ic.model_dump() for ic in suspect.identified_citations], ensure_ascii=False)
+        proposals_json = json.dumps(
+            [ic.model_dump() for ic in suspect.identified_citations], ensure_ascii=False
+        )
         try:
             logger.info(
                 "Invoking LLM review (model=%s) with %d proposals",
@@ -137,7 +139,9 @@ class CitationIdentifier:
                 suspect.context_snippet,
                 proposals_json,
             )
-            reviewed_list: List[IdentifiedCitation] = list(reviewed_output.citations or [])
+            reviewed_list: List[IdentifiedCitation] = list(
+                reviewed_output.citations or []
+            )
             try:
                 logger.info(
                     "LLM review output: %s",
@@ -155,8 +159,6 @@ class CitationIdentifier:
             logger.warning("Reviewer step failed: %s", exc)
             return suspect
 
-
-
     def _build_identified(
         self,
         *,
@@ -166,9 +168,10 @@ class CitationIdentifier:
         confidence: Optional[float] = None,
         justification: Optional[str] = None,
     ) -> IdentifiedCitation:
-
         # determined identified_string
-        identified_string_value = identified_string if identified_string is not None else formatted_name
+        identified_string_value = (
+            identified_string if identified_string is not None else formatted_name
+        )
 
         payload: Dict[str, object] = {
             "formatted_name": formatted_name,
@@ -184,5 +187,6 @@ class CitationIdentifier:
             payload["justification"] = justification
 
         return IdentifiedCitation(**payload)
+
 
 __all__ = ["CitationIdentifier"]

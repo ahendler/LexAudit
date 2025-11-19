@@ -1,4 +1,5 @@
 """LexAudit core module."""
+
 from .models import (
     ValidationStatus,
     ExtractedCitation,
@@ -7,11 +8,12 @@ from .models import (
     ValidatedCitation,
     DocumentAnalysis,
 )
+
 __all__ = [
-    'ValidationStatus',
-    'ExtractedCitation',
-    'ResolvedCitation',
-    'RetrievedDocument',
-    'ValidatedCitation',
-    'DocumentAnalysis',
+    "ValidationStatus",
+    "ExtractedCitation",
+    "ResolvedCitation",
+    "RetrievedDocument",
+    "ValidatedCitation",
+    "DocumentAnalysis",
 ]

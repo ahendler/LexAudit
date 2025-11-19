@@ -1,6 +1,7 @@
 """
 Retrieval client for fetching legal documents from official sources.
 """
+
 from typing import Optional
 import os
 import logging
@@ -27,7 +28,9 @@ class LegalDocumentRetriever:
         """Initialize the retriever."""
         self.session = requests.Session()
 
-    def retrieve(self, resolved_citation: ResolvedCitation) -> Optional[RetrievedDocument]:
+    def retrieve(
+        self, resolved_citation: ResolvedCitation
+    ) -> Optional[RetrievedDocument]:
         """
         Retrieve the full document for a resolved citation.
 
@@ -47,7 +50,8 @@ class LegalDocumentRetriever:
             return self._retrieve_from_google(canonical_id)
         else:
             raise NotImplementedError(
-                "Retrieval for this citation type is not implemented yet.")
+                "Retrieval for this citation type is not implemented yet."
+            )
 
     def _retrieve_from_google(self, canonical_id: str) -> Optional[RetrievedDocument]:
         """
@@ -63,26 +67,22 @@ class LegalDocumentRetriever:
 
         # Priority order: planalto.gov.br is best for laws, then normas.leg.br/lexml for URN resolution
         official_domains = [
-            'planalto.gov.br',
-            'normas.leg.br',
-            'lexml.gov.br',
-            'in.gov.br',
-            'camara.leg.br',
-            'senado.leg.br'
+            "planalto.gov.br",
+            "normas.leg.br",
+            "lexml.gov.br",
+            "in.gov.br",
+            "camara.leg.br",
+            "senado.leg.br",
         ]
 
         try:
             # Search using SerpAPI
-            api_key = os.getenv('SERPAPI_API_KEY')
+            api_key = os.getenv("SERPAPI_API_KEY")
             if not api_key:
                 logger.warning("SERPAPI_API_KEY not set in environment")
                 return None
 
-            params = {
-                "q": canonical_id,
-                "api_key": api_key,
-                "num": 10
-            }
+            params = {"q": canonical_id, "api_key": api_key, "num": 10}
 
             search = GoogleSearch(params)
             results = search.get_dict()
@@ -90,13 +90,13 @@ class LegalDocumentRetriever:
 
             logger.info("Found %d search results", len(organic_results))
             for i, result in enumerate(organic_results):
-                url = result.get('link', '')
+                url = result.get("link", "")
                 logger.debug("[%d] %s", i + 1, url)
 
             # Try each official domain in priority order
             for domain in official_domains:
                 for result in organic_results:
-                    url = result.get('link', '')
+                    url = result.get("link", "")
 
                     if domain in url:
                         logger.info("Using official link: %s", url)
@@ -105,19 +105,24 @@ class LegalDocumentRetriever:
                         response = self.session.get(url, timeout=15)
                         response.raise_for_status()
 
-                        soup = BeautifulSoup(response.content, 'html.parser')
+                        soup = BeautifulSoup(response.content, "html.parser")
 
                         # Remove scripts and styles
-                        for element in soup(['script', 'style', 'nav', 'header', 'footer', 'aside']):
+                        for element in soup(
+                            ["script", "style", "nav", "header", "footer", "aside"]
+                        ):
                             element.decompose()
 
                         # Get text
-                        text = soup.get_text(separator='\n', strip=True)
+                        text = soup.get_text(separator="\n", strip=True)
                         title = soup.title.string if soup.title else canonical_id
 
                         # Skip if content is too short (likely a redirect or error page)
                         if len(text) < 500:
-                            logger.warning("Content too short (%d chars), trying next result...", len(text))
+                            logger.warning(
+                                "Content too short (%d chars), trying next result...",
+                                len(text),
+                            )
                             continue
 
                         logger.info("Retrieved %d characters", len(text))
@@ -129,8 +134,8 @@ class LegalDocumentRetriever:
                             source="web_search",
                             metadata={
                                 "publication_url": url,
-                                "retrieval_method": "serpapi_google_search"
-                            }
+                                "retrieval_method": "serpapi_google_search",
+                            },
                         )
 
             logger.warning("No official links found")
@@ -141,7 +146,9 @@ class LegalDocumentRetriever:
             return None
 
     # NOT WORKING YET
-    def _retrieve_from_lexml_api(self, canonical_id: str) -> Optional[RetrievedDocument]:
+    def _retrieve_from_lexml_api(
+        self, canonical_id: str
+    ) -> Optional[RetrievedDocument]:
         """
         Retrieve document metadata from LexML using SRU API.
 
@@ -156,17 +163,16 @@ class LegalDocumentRetriever:
 
         # Build SRU API URL
         params = {
-            'operation': 'searchRetrieve',
-            'version': '1.1',
-            'query': query,
-            'startRecord': '1',
-            'maximumRecords': '1'
+            "operation": "searchRetrieve",
+            "version": "1.1",
+            "query": query,
+            "startRecord": "1",
+            "maximumRecords": "1",
         }
 
         logger.info("Querying LexML API for: %s", canonical_id)
 
-        response = self.session.get(
-            self.LEXML_SRU_BASE, params=params, timeout=10)
+        response = self.session.get(self.LEXML_SRU_BASE, params=params, timeout=10)
         response.raise_for_status()
 
         # Parse XML response
@@ -174,40 +180,42 @@ class LegalDocumentRetriever:
 
         # Define namespaces
         ns = {
-            'srw': 'http://www.loc.gov/zing/srw/',
-            'dc': 'http://purl.org/dc/elements/1.1/',
-            'lexml': 'http://www.lexml.gov.br/elementSet'
+            "srw": "http://www.loc.gov/zing/srw/",
+            "dc": "http://purl.org/dc/elements/1.1/",
+            "lexml": "http://www.lexml.gov.br/elementSet",
         }
 
         # Check if we got results
-        num_records = root.find('.//srw:numberOfRecords', ns)
+        num_records = root.find(".//srw:numberOfRecords", ns)
         if num_records is None or int(num_records.text) == 0:
             logger.warning("No results found for %s", canonical_id)
             return None
 
         # Extract record data
-        record = root.find('.//srw:record', ns)
+        record = root.find(".//srw:record", ns)
         if record is None:
             return None
 
         # Extract metadata
-        title_elem = record.find('.//dc:title', ns)
+        title_elem = record.find(".//dc:title", ns)
         title = title_elem.text if title_elem is not None else canonical_id
 
-        description_elem = record.find('.//dc:description', ns)
+        description_elem = record.find(".//dc:description", ns)
         description = description_elem.text if description_elem is not None else ""
 
         # Extract publication links
-        identifier_elems = record.findall('.//dc:identifier', ns)
+        identifier_elems = record.findall(".//dc:identifier", ns)
         publication_url = None
 
         for identifier in identifier_elems:
-            if identifier.text and 'planalto.gov.br' in identifier.text:
+            if identifier.text and "planalto.gov.br" in identifier.text:
                 publication_url = identifier.text
                 break
-            elif identifier.text and ('camara.leg.br' in identifier.text or
-                                      'senado.leg.br' in identifier.text or
-                                      'in.gov.br' in identifier.text):
+            elif identifier.text and (
+                "camara.leg.br" in identifier.text
+                or "senado.leg.br" in identifier.text
+                or "in.gov.br" in identifier.text
+            ):
                 if not publication_url:
                     publication_url = identifier.text
 
@@ -228,6 +236,6 @@ class LegalDocumentRetriever:
             metadata={
                 "publication_url": publication_url,
                 "retrieval_method": "lexml_sru_api",
-                "description": description
-            }
+                "description": description,
+            },
         )

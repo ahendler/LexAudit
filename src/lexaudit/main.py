@@ -1,6 +1,7 @@
 """
 Main entry point for LexAudit - Load data and run pipeline.
 """
+
 import json
 import logging
 from pathlib import Path
@@ -22,21 +23,21 @@ def load_stj_sample(file_path: str) -> List[Dict]:
     Returns:
         List of documents with their legislative references
     """
-    with open(file_path, 'r', encoding='utf-8') as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
     # Extract relevant information for our pipeline
     documents = []
     for item in data:
         doc = {
-            'id': item.get('id', 'unknown'),
-            'numero_processo': item.get('numeroProcesso', ''),
-            'citations': item.get('referenciasLegislativas', []),
-            'metadata': {
-                'ementa': item.get('ementa', ''),
-                'data_decisao': item.get('dataDecisao', ''),
-                'ministro_relator': item.get('ministroRelator', '')
-            }
+            "id": item.get("id", "unknown"),
+            "numero_processo": item.get("numeroProcesso", ""),
+            "citations": item.get("referenciasLegislativas", []),
+            "metadata": {
+                "ementa": item.get("ementa", ""),
+                "data_decisao": item.get("dataDecisao", ""),
+                "ministro_relator": item.get("ministroRelator", ""),
+            },
         }
         documents.append(doc)
 
@@ -58,8 +59,13 @@ def main():
     logger.info("")
 
     # Configuration
-    data_path = Path(__file__).parent.parent.parent / "data" / \
-        "cleaned" / "stj" / "sample_10_with_fulltext.json"
+    data_path = (
+        Path(__file__).parent.parent.parent
+        / "data"
+        / "cleaned"
+        / "stj"
+        / "sample_10_with_fulltext.json"
+    )
 
     logger.info("Loading data from: %s", data_path)
     logger.info("")
@@ -84,24 +90,24 @@ def main():
 
     if documents:
         first_doc = documents[0]
-        logger.info("Document ID: %s", first_doc['id'])
-        logger.info("Process Number: %s", first_doc['numero_processo'])
-        logger.info("Number of legislative references: %d", len(first_doc['citations']))
+        logger.info("Document ID: %s", first_doc["id"])
+        logger.info("Process Number: %s", first_doc["numero_processo"])
+        logger.info("Number of legislative references: %d", len(first_doc["citations"]))
         logger.info("")
 
         # Show first few citations
         logger.info("First 3 citations:")
-        for i, citation in enumerate(first_doc['citations'][:3], 1):
+        for i, citation in enumerate(first_doc["citations"][:3], 1):
             # Truncate long citations
-            citation_preview = citation[:100] + \
-                "..." if len(citation) > 100 else citation
+            citation_preview = (
+                citation[:100] + "..." if len(citation) > 100 else citation
+            )
             logger.info("  %d. %s", i, citation_preview)
         logger.info("")
 
         # Run pipeline
         result = pipeline.process_document(
-            document_id=first_doc['id'],
-            pre_extracted_citations=first_doc['citations']
+            document_id=first_doc["id"], pre_extracted_citations=first_doc["citations"]
         )
 
         logger.info("")

@@ -85,7 +85,9 @@ def _build_clusters(windows: List[Tuple[int, int, CitationSuspect]]) -> List[_Cl
     clusters: List[_Cluster] = []
 
     # Sort windows by their starting position, then by end for stable order.
-    for window_left, window_right, suspect in sorted(windows, key=lambda w: (w[0], w[1])):
+    for window_left, window_right, suspect in sorted(
+        windows, key=lambda w: (w[0], w[1])
+    ):
         # If there are no clusters yet or this window doesn't overlap the last cluster, start a new one.
         if not clusters or window_left > clusters[-1].prelim_right:
             clusters.append(
@@ -109,7 +111,9 @@ def _build_clusters(windows: List[Tuple[int, int, CitationSuspect]]) -> List[_Cl
 
 
 def _has_left_linker_anchor(cl: _Cluster) -> bool:
-    return any(m.detector_type == "linker" and m.start == cl.cov_start for m in cl.members)
+    return any(
+        m.detector_type == "linker" and m.start == cl.cov_start for m in cl.members
+    )
 
 
 def _has_right_linker_anchor(cl: _Cluster) -> bool:
@@ -142,8 +146,10 @@ def _compute_cluster_snippet_range(
 def _choose_representative(cl: _Cluster) -> CitationSuspect:
     """Prefer a linker suspect; otherwise the earliest by start/end."""
     linkers = [m for m in cl.members if m.detector_type == "linker"]
-    return min(linkers, key=lambda m: (m.start, m.end)) if linkers else min(
-        cl.members, key=lambda m: (m.start, m.end)
+    return (
+        min(linkers, key=lambda m: (m.start, m.end))
+        if linkers
+        else min(cl.members, key=lambda m: (m.start, m.end))
     )
 
 

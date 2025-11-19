@@ -1,19 +1,17 @@
 from __future__ import annotations
-
-from typing import Any, Dict, List, Optional, Sequence, Type
-import logging
-
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.language_models.chat_models import BaseChatModel
-
 from lexaudit.core.llm_config import create_llm
 from lexaudit.prompts.identification import IDENTIFICATION_PROMPT
 from lexaudit.prompts.review import REVIEW_PROMPT
 from lexaudit.core.models import IdentifiedCitations
 
+from typing import Any, Dict, Optional
+import logging
+
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.language_models.chat_models import BaseChatModel
+
 
 class StructuredLLM:
-
     def __init__(
         self,
         *,
@@ -26,7 +24,11 @@ class StructuredLLM:
             resolved_name = model_name or getattr(chat_model, "model_name", "custom")
         else:
             self.llm = create_llm(model_name=model_name, temperature=temperature)
-            resolved_name = model_name or getattr(self.llm, "model_name", "default") if self.llm else "unconfigured"
+            resolved_name = (
+                model_name or getattr(self.llm, "model_name", "default")
+                if self.llm
+                else "unconfigured"
+            )
         self.model_name = resolved_name
         logger.info(
             "Initialized chat model class=%s model_name=%s available=%s",
@@ -34,7 +36,7 @@ class StructuredLLM:
             self.model_name,
             self.llm is not None,
         )
-    
+
     @property
     def available(self) -> bool:
         return self.llm is not None
@@ -86,7 +88,6 @@ class StructuredLLM:
 
 
 class IdentifierLLM:
-
     def __init__(
         self,
         *,
@@ -98,7 +99,9 @@ class IdentifierLLM:
         self.model_name = self._core.model_name
 
         # Cadeias LCEL quando suportado
-        self.identify_chain = self._core.chain(IDENTIFICATION_PROMPT, IdentifiedCitations)
+        self.identify_chain = self._core.chain(
+            IDENTIFICATION_PROMPT, IdentifiedCitations
+        )
         self.review_chain = self._core.chain(REVIEW_PROMPT, IdentifiedCitations)
 
     @property
@@ -114,6 +117,7 @@ class IdentifierLLM:
     def review(self, context_snippet: str, proposals_json: str) -> IdentifiedCitations:
         values = {"context_snippet": context_snippet, "proposals_json": proposals_json}
         return self._core.invoke(REVIEW_PROMPT, values, IdentifiedCitations)
+
 
 __all__ = ["StructuredLLM", "IdentifierLLM"]
 logger = logging.getLogger(__name__)

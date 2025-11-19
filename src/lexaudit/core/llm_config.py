@@ -1,6 +1,7 @@
 """
 LLM configuration and factory for creating LangChain chat models.
 """
+
 import os
 import logging
 from typing import Optional
@@ -11,7 +12,7 @@ from config.settings import SETTINGS
 def create_llm(
     provider: Optional[str] = None,
     model_name: Optional[str] = None,
-    temperature: Optional[float] = None
+    temperature: Optional[float] = None,
 ) -> Optional[BaseChatModel]:
     """
     Create a LangChain chat model based on provider configuration.
@@ -32,34 +33,52 @@ def create_llm(
     try:
         if provider == "openai":
             from langchain_openai import ChatOpenAI
+
             api_key = SETTINGS.openai_api_key
             if not api_key:
-                logging.getLogger(__name__).warning("[LLM_CONFIG] openai_api_key not set")
+                logging.getLogger(__name__).warning(
+                    "[LLM_CONFIG] openai_api_key not set"
+                )
                 return None
-            return ChatOpenAI(model=model_name, temperature=temperature, api_key=api_key)
+            return ChatOpenAI(
+                model=model_name, temperature=temperature, api_key=api_key
+            )
 
         elif provider in ["google", "gemini"]:
             from langchain_google_genai import ChatGoogleGenerativeAI
+
             api_key = SETTINGS.google_api_key
             if not api_key:
-                logging.getLogger(__name__).warning("[LLM_CONFIG] google_api_key not set")
+                logging.getLogger(__name__).warning(
+                    "[LLM_CONFIG] google_api_key not set"
+                )
                 return None
-            return ChatGoogleGenerativeAI(model=model_name, temperature=temperature, google_api_key=api_key)
+            return ChatGoogleGenerativeAI(
+                model=model_name, temperature=temperature, google_api_key=api_key
+            )
 
         elif provider == "anthropic":
             from langchain_anthropic import ChatAnthropic
+
             api_key = os.getenv("ANTHROPIC_API_KEY")
             if not api_key:
-                logging.getLogger(__name__).warning("[LLM_CONFIG] ANTHROPIC_API_KEY not set")
+                logging.getLogger(__name__).warning(
+                    "[LLM_CONFIG] ANTHROPIC_API_KEY not set"
+                )
                 return None
-            return ChatAnthropic(model=model_name, temperature=temperature, api_key=api_key)
+            return ChatAnthropic(
+                model=model_name, temperature=temperature, api_key=api_key
+            )
 
         elif provider == "ollama":
             from langchain_community.chat_models import ChatOllama
+
             return ChatOllama(model=model_name, temperature=temperature)
 
         else:
-            logging.getLogger(__name__).warning("[LLM_CONFIG] Unknown provider '%s'", provider)
+            logging.getLogger(__name__).warning(
+                "[LLM_CONFIG] Unknown provider '%s'", provider
+            )
             return None
 
     except ImportError as e:

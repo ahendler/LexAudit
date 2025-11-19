@@ -1,14 +1,16 @@
 """
 LexAudit Pipeline - Orchestrates the full validation process.
 """
+
+from ..extraction.citation_extractor import CitationExtractor
+from ..retrieval.resolver import CitationResolver
+from ..retrieval.retriever import LegalDocumentRetriever
+
 from typing import List
 import logging
 from .models import DocumentAnalysis
 
 logger = logging.getLogger(__name__)
-from ..extraction.citation_extractor import CitationExtractor
-from ..retrieval.resolver import CitationResolver
-from ..retrieval.retriever import LegalDocumentRetriever
 
 
 class LexAuditPipeline:
@@ -30,8 +32,12 @@ class LexAuditPipeline:
         # TODO: Initialize validator when validation module is ready
         # self.validator = RAGValidator()
 
-    def process_document(self, document_id: str, text: str = "",
-                         pre_extracted_citations: List[str] = None) -> DocumentAnalysis:
+    def process_document(
+        self,
+        document_id: str,
+        text: str = "",
+        pre_extracted_citations: List[str] = None,
+    ) -> DocumentAnalysis:
         """
         Process a document through the full pipeline.
 
@@ -43,10 +49,7 @@ class LexAuditPipeline:
         Returns:
             Complete document analysis
         """
-        analysis = DocumentAnalysis(
-            document_id=document_id,
-            metadata={}
-        )
+        analysis = DocumentAnalysis(document_id=document_id, metadata={})
 
         # STAGE 1: Extraction
         logger.info("[STAGE 1] Extracting citations from document %s...", document_id)
@@ -57,8 +60,7 @@ class LexAuditPipeline:
             )
         else:
             # Extract from text (not implemented yet)
-            analysis.extracted_citations = self.extractor.extract_from_text(
-                text)
+            analysis.extracted_citations = self.extractor.extract_from_text(text)
 
         logger.info("  -> Extracted %d citations", len(analysis.extracted_citations))
 
@@ -73,7 +75,12 @@ class LexAuditPipeline:
         logger.info("  -> Resolved %d citations", len(analysis.resolved_citations))
         logger.info("     (showing first 2 resolved citations)")
         for resolved in analysis.resolved_citations:
-            logger.info("     - %s -> %s (conf: %.2f)", resolved.extracted_citation.formatted_name, resolved.canonical_id, resolved.resolution_confidence)
+            logger.info(
+                "     - %s -> %s (conf: %.2f)",
+                resolved.extracted_citation.formatted_name,
+                resolved.canonical_id,
+                resolved.resolution_confidence,
+            )
 
         # STAGE 3: Retrieval
         logger.info("[STAGE 3] Retrieving official documents...")
@@ -108,12 +115,11 @@ class LexAuditPipeline:
         results = []
 
         for doc in documents:
-            doc_id = doc.get('id', 'unknown')
-            citations = doc.get('citations', [])
+            doc_id = doc.get("id", "unknown")
+            citations = doc.get("citations", [])
 
             analysis = self.process_document(
-                document_id=doc_id,
-                pre_extracted_citations=citations
+                document_id=doc_id, pre_extracted_citations=citations
             )
             results.append(analysis)
 

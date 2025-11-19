@@ -38,7 +38,9 @@ class CitationDetector:
         self._use_linker = use_linker
         self._context = context
         self._timeout = timeout
-        self._linker_cmd = list(linker_cmd) if linker_cmd is not None else list(SETTINGS.linker_cmd)
+        self._linker_cmd = (
+            list(linker_cmd) if linker_cmd is not None else list(SETTINGS.linker_cmd)
+        )
 
     def detect(
         self,
@@ -76,7 +78,9 @@ class CitationDetector:
         resolved_use_linker = self._use_linker if use_linker is None else use_linker
         resolved_context = self._context if context is None else context
         resolved_timeout = self._timeout if timeout is None else timeout
-        resolved_linker_cmd = list(self._linker_cmd if linker_cmd is None else linker_cmd)
+        resolved_linker_cmd = list(
+            self._linker_cmd if linker_cmd is None else linker_cmd
+        )
 
         t0 = perf_counter()
         logger.info(

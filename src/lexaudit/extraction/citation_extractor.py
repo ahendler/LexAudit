@@ -1,6 +1,7 @@
 """
 Citation extraction orchestrator.
 """
+
 import logging
 from typing import List, Optional
 
@@ -50,11 +51,11 @@ class CitationExtractor:
         )
 
         # Identify citations for regex suspects only
-        logger.info(
-            "Running identification for %d regex suspects", len(regex_suspects)
-        )
+        logger.info("Running identification for %d regex suspects", len(regex_suspects))
         identified_regexes = (
-            self.identifier.identify_citations(text, regex_suspects) if regex_suspects else []
+            self.identifier.identify_citations(text, regex_suspects)
+            if regex_suspects
+            else []
         )
         logger.info(
             "Identification complete; %d suspects returned with citations",
@@ -69,7 +70,7 @@ class CitationExtractor:
 
         extracted: List[ExtractedCitation] = []
         for suspect in suspects_to_normalize:
-            for citation in (suspect.identified_citations or []):
+            for citation in suspect.identified_citations or []:
                 try:
                     item = self._to_extracted(text, suspect, citation)
                     if item is not None:
@@ -78,9 +79,7 @@ class CitationExtractor:
                     # Already logged inside _to_extracted
                     continue
 
-        logger.info(
-            "Produced %d extracted citations", len(extracted)
-        )
+        logger.info("Produced %d extracted citations", len(extracted))
 
         return extracted
 
@@ -119,8 +118,6 @@ class CitationExtractor:
         except Exception as exc:
             logger.warning("Invalid citation payload skipped: %s", exc)
             return None
-
-
 
     def forward_extracted_citations(
         self,
