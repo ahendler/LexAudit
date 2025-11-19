@@ -19,3 +19,8 @@ langchain-google-genai
 
 # Environment variable loader
 python-dotenv>=1.0.0
+
+# Development / formatting / linting tools
+ruff
+black
+isort
