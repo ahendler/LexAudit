@@ -3,13 +3,14 @@ Citation resolution module.
 Converts textual citations to canonical identifiers (URN:LEX) using LLM.
 """
 
-from typing import Optional, List
 import logging
+from typing import List, Optional
+
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from ..core.models import ExtractedCitation, ResolvedCitation, ResolutionOutput
+from ..core.models import ExtractedCitation, ResolutionOutput, ResolvedCitation
 from ..core.structured_llm import StructuredLLM
-from ..prompts.resolution import RESOLUTION_PROMPT, FEW_SHOT_EXAMPLES
+from ..prompts.resolution import FEW_SHOT_EXAMPLES, RESOLUTION_PROMPT
 
 
 class CitationResolver:

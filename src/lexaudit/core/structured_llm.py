@@ -1,14 +1,15 @@
 from __future__ import annotations
+
+import logging
+from typing import Any, Dict, Optional
+
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.output_parsers import JsonOutputParser
+
 from lexaudit.core.llm_config import create_llm
+from lexaudit.core.models import IdentifiedCitations
 from lexaudit.prompts.identification import IDENTIFICATION_PROMPT
 from lexaudit.prompts.review import REVIEW_PROMPT
-from lexaudit.core.models import IdentifiedCitations
-
-from typing import Any, Dict, Optional
-import logging
-
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.language_models.chat_models import BaseChatModel
 
 
 class StructuredLLM:

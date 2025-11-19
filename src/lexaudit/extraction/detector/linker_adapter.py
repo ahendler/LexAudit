@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 from html.parser import HTMLParser
-import logging
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from lexaudit.core.models import CitationSuspect, IdentifiedCitation
 from config.settings import SETTINGS
-
+from lexaudit.core.models import CitationSuspect, IdentifiedCitation
 
 logger = logging.getLogger(__name__)
 

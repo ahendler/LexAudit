@@ -8,11 +8,7 @@ from config.settings import SETTINGS
 from lexaudit.core.models import CitationSuspect
 
 from .deduplicator import deduplicate
-from .linker_adapter import (
-    LinkerExecutionError,
-    LinkerParsingError,
-    run_linker,
-)
+from .linker_adapter import LinkerExecutionError, LinkerParsingError, run_linker
 from .pattern_scanner import run_scanner
 
 logger = logging.getLogger(__name__)

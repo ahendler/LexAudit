@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import List, Tuple, Optional
 from dataclasses import dataclass, field
+from typing import List, Optional, Tuple
 
 from config.settings import SETTINGS
 from lexaudit.core.models import CitationSuspect
+
 from .snippets import build_sentence_bounded_range
 
 

@@ -2,12 +2,12 @@
 LexAudit Pipeline - Orchestrates the full validation process.
 """
 
+import logging
+from typing import List
+
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
-
-from typing import List
-import logging
 from .models import DocumentAnalysis
 
 logger = logging.getLogger(__name__)

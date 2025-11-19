@@ -2,10 +2,12 @@
 LLM configuration and factory for creating LangChain chat models.
 """
 
-import os
 import logging
+import os
 from typing import Optional
+
 from langchain_core.language_models.chat_models import BaseChatModel
+
 from config.settings import SETTINGS
 
 

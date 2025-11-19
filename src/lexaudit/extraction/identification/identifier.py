@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict
-import logging
 import json
+import logging
 from time import perf_counter
-from lexaudit.core.models import (
-    CitationSuspect,
-    IdentifiedCitation,
-)
-from lexaudit.core.structured_llm import IdentifierLLM
+from typing import Dict, List, Optional
+
 from config.settings import SETTINGS
+from lexaudit.core.models import CitationSuspect, IdentifiedCitation
+from lexaudit.core.structured_llm import IdentifierLLM
 
 logger = logging.getLogger(__name__)
 

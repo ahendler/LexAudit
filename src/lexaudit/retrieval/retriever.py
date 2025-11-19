@@ -2,13 +2,15 @@
 Retrieval client for fetching legal documents from official sources.
 """
 
-from typing import Optional
-import os
 import logging
-import requests
+import os
 import xml.etree.ElementTree as ET
+from typing import Optional
+
+import requests
 from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
+
 from ..core.models import ResolvedCitation, RetrievedDocument
 
 logger = logging.getLogger(__name__)

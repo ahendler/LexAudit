@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-
 _HARD_PUNCT = {".", "!", "?"}
 _SOFT_PUNCT = {";", ":"}
 _ABBREVIATIONS = {

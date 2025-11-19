@@ -5,10 +5,12 @@ Main entry point for LexAudit - Load data and run pipeline.
 import json
 import logging
 from pathlib import Path
-from typing import List, Dict
-from lexaudit.core.pipeline import LexAuditPipeline
+from typing import Dict, List
+
 from dotenv import load_dotenv
+
 from config.settings import SETTINGS
+from lexaudit.core.pipeline import LexAuditPipeline
 
 logger = logging.getLogger(__name__)
 

@@ -7,9 +7,12 @@ from pydantic_settings import BaseSettings
 
 load_dotenv()
 
+
 class LexAuditSettings(BaseSettings):
 
-    linker_cmd: str = "docker run -i --rm lexmlbr/lexml-linker:latest /usr/bin/linkertool"
+    linker_cmd: str = (
+        "docker run -i --rm lexmlbr/lexml-linker:latest /usr/bin/linkertool"
+    )
     linker_context: str = "federal"
     linker_timeout: Optional[float] = 1.0
 
@@ -27,7 +30,6 @@ class LexAuditSettings(BaseSettings):
     openai_api_key: str = ""
     # Logging
     logging_level: str = "INFO"
-
 
 
 SETTINGS = LexAuditSettings()

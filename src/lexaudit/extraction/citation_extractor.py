@@ -5,14 +5,9 @@ Citation extraction orchestrator.
 import logging
 from typing import List, Optional
 
-from ..core.models import (
-    IdentifiedCitation,
-    CitationSuspect,
-    ExtractedCitation,
-)
+from ..core.models import CitationSuspect, ExtractedCitation, IdentifiedCitation
 from .detector import CitationDetector
 from .identification import CitationIdentifier
-
 
 logger = logging.getLogger(__name__)
 
