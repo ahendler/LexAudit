@@ -144,16 +144,21 @@ class LegalDocumentRetriever:
             html_content = self._preprocess_strikethrough(response.content)
 
             # Extract main content with Trafilatura
+            # favor_recall=True prioritizes capturing more content over precision
             text = trafilatura.extract(
                 html_content,
                 include_comments=False,
                 include_tables=True,
                 no_fallback=False,
+                favor_recall=True
             )
 
             if not text or len(text) < 500:
                 logger.warning("Content too short (%d chars)", len(text) if text else 0)
                 return None
+
+            # Post-process: merge adjacent revoked sections in extracted text
+            text = self._merge_adjacent_revoked(text)
 
             # Extract title
             metadata = trafilatura.extract_metadata(response.content)
@@ -180,17 +185,51 @@ class LegalDocumentRetriever:
         """Preprocess HTML to mark strikethrough content with special markers."""
         soup = BeautifulSoup(html_content, "html.parser")
         
-        # Find all strike/s/del tags and wrap their content
-        for tag in soup.find_all(["strike", "s", "del"]):
-            if tag.string:
-                tag.string = f"[REVOGADO: {tag.string}]"
-            else:
-                # Handle nested content
-                text = tag.get_text()
-                tag.clear()
-                tag.string = f"[REVOGADO: {text}]"
+        # Find all strike/s/del tags and unwrap them with markers
+        strike_tags = soup.find_all(["strike", "s", "del"])
+        logger.debug(f"Found {len(strike_tags)} strikethrough tags")
+        
+        for i, tag in enumerate(strike_tags):
+            preview = tag.get_text()[:100].replace('\n', ' ')
+            logger.debug(f"Strike tag {i + 1}: {preview}...")
+            
+            # Insert marker before the tag content
+            marker_before = soup.new_string("<REVOGADO_INICIO>")
+            tag.insert_before(marker_before)
+            
+            # Insert marker after the tag content
+            marker_after = soup.new_string("<REVOGADO_FIM>")
+            tag.insert_after(marker_after)
+            
+            # Unwrap the tag (keep content, remove the tag itself)
+            tag.unwrap()
         
         return str(soup)
+
+    def _merge_adjacent_revoked(self, text: str) -> str:
+        """Merge adjacent revoked sections separated by short content."""
+        import re
+        
+        # Pattern: <REVOGADO_FIM> followed by short content, then <REVOGADO_INICIO>
+        # Captures: whitespace, newlines, bullets (-, *, •), and short text (< 4 chars)
+        def should_merge(match):
+            separator = match.group(1)
+            # Strip whitespace and common bullet characters
+            cleaned = separator.strip().lstrip('-*•')
+            # If what remains is very short (< 4 chars), merge the sections
+            if len(cleaned) < 4:
+                return '\n'  # Replace with single newline
+            return match.group(0)  # Keep as is
+        
+        # Match end tag, separator content, and start tag
+        # Allow for bullets, whitespace, and short strings
+        merged = re.sub(
+            r'<REVOGADO_FIM>([^<]{0,20})<REVOGADO_INICIO>',
+            should_merge,
+            text
+        )
+        
+        return merged
 
     # Pages cache helpers
     def _cache_file_path(self, url: str) -> str:
