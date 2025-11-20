@@ -9,7 +9,7 @@ from typing import Dict, List
 
 from dotenv import load_dotenv
 
-from config.settings import SETTINGS
+from lexaudit.config.settings import SETTINGS
 from lexaudit.core.pipeline import LexAuditPipeline
 
 logger = logging.getLogger(__name__)

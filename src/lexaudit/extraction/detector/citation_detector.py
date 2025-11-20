@@ -4,7 +4,7 @@ import logging
 from time import perf_counter
 from typing import Dict, List, Optional, Sequence, Tuple
 
-from config.settings import SETTINGS
+from lexaudit.config.settings import SETTINGS
 from lexaudit.core.models import CitationSuspect
 
 from .deduplicator import deduplicate

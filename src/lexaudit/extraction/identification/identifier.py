@@ -5,7 +5,7 @@ import logging
 from time import perf_counter
 from typing import Dict, List, Optional
 
-from config.settings import SETTINGS
+from lexaudit.config.settings import SETTINGS
 from lexaudit.core.models import CitationSuspect, IdentifiedCitation
 from lexaudit.core.structured_llm import IdentifierLLM
 

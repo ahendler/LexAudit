@@ -8,7 +8,7 @@ from typing import Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from config.settings import SETTINGS
+from lexaudit.config.settings import SETTINGS
 
 
 def create_llm(

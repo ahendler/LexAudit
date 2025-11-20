@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from typing import Optional
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
-load_dotenv()
+load_dotenv(Path(__file__).parent.parent.parent.parent / "config" / ".env")
 
 
 class LexAuditSettings(BaseSettings):

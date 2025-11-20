@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from config.settings import SETTINGS
+from lexaudit.config.settings import SETTINGS
 from lexaudit.core.models import CitationSuspect, IdentifiedCitation
 
 logger = logging.getLogger(__name__)
