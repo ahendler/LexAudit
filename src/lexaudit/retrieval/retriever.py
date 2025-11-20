@@ -2,13 +2,15 @@
 Retrieval client for fetching legal documents from official sources.
 """
 
+import hashlib
+import json
 import logging
 import os
 import xml.etree.ElementTree as ET
 from typing import Optional
 
 import requests
-from bs4 import BeautifulSoup
+import trafilatura
 from serpapi import GoogleSearch
 
 from ..core.models import ResolvedCitation, RetrievedDocument
@@ -29,6 +31,21 @@ class LegalDocumentRetriever:
     def __init__(self):
         """Initialize the retriever."""
         self.session = requests.Session()
+        # Set browser-like headers to avoid being blocked by government sites
+        self.session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+        })
+        # Pages cache directory (stores mapping URL -> RetrievedDocument as JSON)
+        repo_root = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "..", "..")
+        )
+        self.pages_cache_dir = os.path.join(repo_root, "data", "retrieved_pages")
+        os.makedirs(self.pages_cache_dir, exist_ok=True)
 
     def retrieve(
         self, resolved_citation: ResolvedCitation
@@ -46,28 +63,29 @@ class LegalDocumentRetriever:
             return None
 
         canonical_id = resolved_citation.canonical_id
+        # Use the raw citation text for searching (better Google results)
+        raw_citation = resolved_citation.extracted_citation.identified_string
 
         # Route to appropriate retriever based on URN pattern
         if canonical_id.startswith("urn:lex:br:"):
-            return self._retrieve_from_google(canonical_id)
+            return self._retrieve_from_google(canonical_id, raw_citation)
         else:
             raise NotImplementedError(
                 "Retrieval for this citation type is not implemented yet."
             )
 
-    def _retrieve_from_google(self, canonical_id: str) -> Optional[RetrievedDocument]:
-        """
-        Retrieve document by searching for the URN and fetching from official sources.
+    def _retrieve_from_google(
+        self, canonical_id: str, raw_citation: str
+    ) -> Optional[RetrievedDocument]:
+        """Retrieve document by searching and fetching from official sources."""
+        logger.info("Searching for: %s (URN: %s)", raw_citation, canonical_id)
 
-        Args:
-            canonical_id: URN:LEX identifier
+        # Search for URLs
+        urls = self._search_google(raw_citation)
+        if not urls:
+            return None
 
-        Returns:
-            Retrieved document or None if not found
-        """
-        logger.info("Searching for: %s", canonical_id)
-
-        # Priority order: planalto.gov.br is best for laws, then normas.leg.br/lexml for URN resolution
+        # Try each URL in priority order
         official_domains = [
             "planalto.gov.br",
             "normas.leg.br",
@@ -77,75 +95,111 @@ class LegalDocumentRetriever:
             "senado.leg.br",
         ]
 
+        for domain in official_domains:
+            for url in urls:
+                if domain in url:
+                    doc = self._fetch_and_extract(url, canonical_id)
+                    if doc:
+                        return doc
+
+        logger.warning("No official content retrieved")
+        return None
+
+    def _search_google(self, query: str) -> list[str]:
+        """Search Google and return list of URLs."""
         try:
-            # Search using SerpAPI
             api_key = os.getenv("SERPAPI_API_KEY")
             if not api_key:
-                logger.warning("SERPAPI_API_KEY not set in environment")
+                logger.warning("SERPAPI_API_KEY not set")
+                return []
+
+            search = GoogleSearch({"q": query, "api_key": api_key, "num": 10})
+            results = search.get_dict().get("organic_results", [])
+            urls = [r.get("link", "") for r in results if r.get("link")]
+            logger.info("Found %d search results", len(urls))
+            return urls
+        except Exception as e:
+            logger.error("Search failed: %s", e)
+            return []
+
+    def _fetch_and_extract(
+        self, url: str, canonical_id: str
+    ) -> Optional[RetrievedDocument]:
+        """Fetch URL and extract main content using Trafilatura."""
+        logger.info("Trying: %s", url)
+
+        # Check cache
+        cached = self._load_cached_page(url)
+        if cached:
+            logger.info("Cache hit")
+            return cached
+
+        # Fetch and extract
+        try:
+            response = self.session.get(url, timeout=15)
+            response.raise_for_status()
+
+            # Preprocess HTML to mark strikethrough content
+            html_content = self._preprocess_strikethrough(response.content)
+
+            # Extract main content with Trafilatura
+            text = trafilatura.extract(
+                html_content,
+                include_comments=False,
+                include_tables=True,
+                no_fallback=False,
+            )
+
+            if not text or len(text) < 500:
+                logger.warning("Content too short (%d chars)", len(text) if text else 0)
                 return None
 
-            params = {"q": canonical_id, "api_key": api_key, "num": 10}
+            # Extract title
+            metadata = trafilatura.extract_metadata(response.content)
+            title = metadata.title if metadata and metadata.title else canonical_id
 
-            search = GoogleSearch(params)
-            results = search.get_dict()
-            organic_results = results.get("organic_results", [])
+            logger.info("Retrieved %d characters", len(text))
 
-            logger.info("Found %d search results", len(organic_results))
-            for i, result in enumerate(organic_results):
-                url = result.get("link", "")
-                logger.debug("[%d] %s", i + 1, url)
+            doc = RetrievedDocument(
+                canonical_id=canonical_id,
+                title=title.strip(),
+                full_text=f"{url}\n\n{text}",
+                source="web_search",
+                metadata={"publication_url": url, "retrieval_method": "trafilatura"},
+            )
 
-            # Try each official domain in priority order
-            for domain in official_domains:
-                for result in organic_results:
-                    url = result.get("link", "")
-
-                    if domain in url:
-                        logger.info("Using official link: %s", url)
-
-                        # Fetch the actual content
-                        response = self.session.get(url, timeout=15)
-                        response.raise_for_status()
-
-                        soup = BeautifulSoup(response.content, "html.parser")
-
-                        # Remove scripts and styles
-                        for element in soup(
-                            ["script", "style", "nav", "header", "footer", "aside"]
-                        ):
-                            element.decompose()
-
-                        # Get text
-                        text = soup.get_text(separator="\n", strip=True)
-                        title = soup.title.string if soup.title else canonical_id
-
-                        # Skip if content is too short (likely a redirect or error page)
-                        if len(text) < 500:
-                            logger.warning(
-                                "Content too short (%d chars), trying next result...",
-                                len(text),
-                            )
-                            continue
-
-                        logger.info("Retrieved %d characters", len(text))
-
-                        return RetrievedDocument(
-                            canonical_id=canonical_id,
-                            title=title,
-                            full_text=text,
-                            source="web_search",
-                            metadata={
-                                "publication_url": url,
-                                "retrieval_method": "serpapi_google_search",
-                            },
-                        )
-
-            logger.warning("No official links found")
-            return None
+            self._save_cached_page(url, doc)
+            return doc
 
         except Exception as e:
-            logger.error("Error: %s", e)
+            logger.warning("Failed to fetch %s: %s", url, e)
             return None
+
+    # Pages cache helpers
+    def _cache_file_path(self, url: str) -> str:
+        """Return a filesystem-safe cache file path for a given URL."""
+        key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        return os.path.join(self.pages_cache_dir, f"{key}.json")
+
+    def _load_cached_page(self, url: str) -> Optional[RetrievedDocument]:
+        """Load a cached RetrievedDocument for a given URL if present."""
+        path = self._cache_file_path(url)
+        if not os.path.exists(path):
+            return None
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # Reconstruct RetrievedDocument
+        return RetrievedDocument(**data)
+
+    def _save_cached_page(self, url: str, doc: RetrievedDocument) -> None:
+        """Save a RetrievedDocument to the pages cache."""
+        path = self._cache_file_path(url)
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(doc.dict(), f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, path)
 
     # NOT WORKING YET
     def _retrieve_from_lexml_api(

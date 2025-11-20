@@ -65,7 +65,7 @@ class LexAuditPipeline:
         logger.info("  -> Extracted %d citations", len(analysis.extracted_citations))
 
         # STAGE 2: Resolution
-        logger.info("[STAGE 2] Resolving citations to canonical IDs...")
+        logger.info("[STAGE 2] Resolving citations to canonical IDs... (Only the first 2 citations)")
         # Extract the first two citations as a sample
         sample_citations = analysis.extracted_citations[:2]
         for citation in sample_citations:
