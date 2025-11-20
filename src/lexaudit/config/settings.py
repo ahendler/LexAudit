@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from typing import Optional
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
@@ -10,7 +10,6 @@ load_dotenv(Path(__file__).parent.parent.parent.parent / "config" / ".env")
 
 
 class LexAuditSettings(BaseSettings):
-
     linker_cmd: str = (
         "docker run -i --rm lexmlbr/lexml-linker:latest /usr/bin/linkertool"
     )

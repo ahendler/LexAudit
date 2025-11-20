@@ -15,6 +15,9 @@ from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
 
 from ..core.models import ResolvedCitation, RetrievedDocument
+from ..core.structured_llm import StructuredLLM
+from ..prompts.retrieved_citation_check import RETRIEVED_CITATION_CHECK_PROMPT
+from .retrieved_citation_check import RetrievedCitationCheck
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +35,18 @@ class LegalDocumentRetriever:
     def __init__(self):
         """Initialize the retriever."""
         self.session = requests.Session()
+        self.llm = StructuredLLM()
         # Set browser-like headers to avoid being blocked by government sites
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+            }
+        )
         # Pages cache directory (stores mapping URL -> RetrievedDocument as JSON)
         repo_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..", "..", "..")
@@ -99,7 +105,7 @@ class LegalDocumentRetriever:
         for domain in official_domains:
             for url in urls:
                 if domain in url:
-                    doc = self._fetch_and_extract(url, canonical_id)
+                    doc = self._fetch_and_extract(url, canonical_id, raw_citation)
                     if doc:
                         return doc
 
@@ -124,7 +130,7 @@ class LegalDocumentRetriever:
             return []
 
     def _fetch_and_extract(
-        self, url: str, canonical_id: str
+        self, url: str, canonical_id: str, raw_citation: str = ""
     ) -> Optional[RetrievedDocument]:
         """Fetch URL and extract main content using Trafilatura."""
         logger.info("Trying: %s", url)
@@ -150,7 +156,7 @@ class LegalDocumentRetriever:
                 include_comments=False,
                 include_tables=True,
                 no_fallback=False,
-                favor_recall=True
+                favor_recall=True,
             )
 
             if not text or len(text) < 500:
@@ -159,6 +165,13 @@ class LegalDocumentRetriever:
 
             # Post-process: merge adjacent revoked sections in extracted text
             text = self._merge_adjacent_revoked(text)
+
+            # Check if document matches citation
+            if not self._check_retrieved_citation(
+                text, raw_citation, canonical_id, url
+            ):
+                logger.warning("Retrieved citation check failed, trying next result")
+                return None
 
             # Extract title
             metadata = trafilatura.extract_metadata(response.content)
@@ -184,52 +197,85 @@ class LegalDocumentRetriever:
     def _preprocess_strikethrough(self, html_content: bytes) -> str:
         """Preprocess HTML to mark strikethrough content with special markers."""
         soup = BeautifulSoup(html_content, "html.parser")
-        
+
         # Find all strike/s/del tags and unwrap them with markers
         strike_tags = soup.find_all(["strike", "s", "del"])
         logger.debug(f"Found {len(strike_tags)} strikethrough tags")
-        
+
         for i, tag in enumerate(strike_tags):
-            preview = tag.get_text()[:100].replace('\n', ' ')
+            preview = tag.get_text()[:100].replace("\n", " ")
             logger.debug(f"Strike tag {i + 1}: {preview}...")
-            
+
             # Insert marker before the tag content
             marker_before = soup.new_string("<REVOGADO_INICIO>")
             tag.insert_before(marker_before)
-            
+
             # Insert marker after the tag content
             marker_after = soup.new_string("<REVOGADO_FIM>")
             tag.insert_after(marker_after)
-            
+
             # Unwrap the tag (keep content, remove the tag itself)
             tag.unwrap()
-        
+
         return str(soup)
 
     def _merge_adjacent_revoked(self, text: str) -> str:
         """Merge adjacent revoked sections separated by short content."""
         import re
-        
+
         # Pattern: <REVOGADO_FIM> followed by short content, then <REVOGADO_INICIO>
         # Captures: whitespace, newlines, bullets (-, *, •), and short text (< 4 chars)
         def should_merge(match):
             separator = match.group(1)
             # Strip whitespace and common bullet characters
-            cleaned = separator.strip().lstrip('-*•')
+            cleaned = separator.strip().lstrip("-*•")
             # If what remains is very short (< 4 chars), merge the sections
             if len(cleaned) < 4:
-                return '\n'  # Replace with single newline
+                return "\n"  # Replace with single newline
             return match.group(0)  # Keep as is
-        
+
         # Match end tag, separator content, and start tag
         # Allow for bullets, whitespace, and short strings
         merged = re.sub(
-            r'<REVOGADO_FIM>([^<]{0,20})<REVOGADO_INICIO>',
-            should_merge,
-            text
+            r"<REVOGADO_FIM>([^<]{0,20})<REVOGADO_INICIO>", should_merge, text
         )
-        
+
         return merged
+
+    def _check_retrieved_citation(
+        self, text: str, raw_citation: str, canonical_id: str, url: str
+    ) -> bool:
+        """Check that retrieved document matches the citation using LLM."""
+        if not self.llm.available:
+            logger.error("LLM not available, skipping check")
+            return True  # Skip check if LLM not configured
+
+        try:
+            # Send full document text for checking
+            check_result = self.llm.invoke(
+                RETRIEVED_CITATION_CHECK_PROMPT,
+                {
+                    "citation_text": raw_citation,
+                    "canonical_id": canonical_id,
+                    "document_text": text,
+                },
+                RetrievedCitationCheck,
+            )
+            logger.info(
+                "Retrieved citation check: %s - %s",
+                "MATCH" if check_result.matches else "NO MATCH",
+                check_result.reasoning,
+            )
+            if check_result.extracted_text:
+                logger.info(
+                    "Extracted specific part (%d chars): %s...",
+                    len(check_result.extracted_text),
+                    check_result.extracted_text,
+                )
+            return check_result.matches
+        except Exception as e:
+            logger.warning("Citation check failed: %s. Accepting document.", e)
+            return True  # Accept on error
 
     # Pages cache helpers
     def _cache_file_path(self, url: str) -> str:
