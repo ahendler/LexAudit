@@ -11,6 +11,7 @@ from typing import Optional
 
 import requests
 import trafilatura
+from bs4 import BeautifulSoup
 from serpapi import GoogleSearch
 
 from ..core.models import ResolvedCitation, RetrievedDocument
@@ -174,6 +175,22 @@ class LegalDocumentRetriever:
         except Exception as e:
             logger.warning("Failed to fetch %s: %s", url, e)
             return None
+
+    def _preprocess_strikethrough(self, html_content: bytes) -> str:
+        """Preprocess HTML to mark strikethrough content with special markers."""
+        soup = BeautifulSoup(html_content, "html.parser")
+        
+        # Find all strike/s/del tags and wrap their content
+        for tag in soup.find_all(["strike", "s", "del"]):
+            if tag.string:
+                tag.string = f"[REVOGADO: {tag.string}]"
+            else:
+                # Handle nested content
+                text = tag.get_text()
+                tag.clear()
+                tag.string = f"[REVOGADO: {text}]"
+        
+        return str(soup)
 
     # Pages cache helpers
     def _cache_file_path(self, url: str) -> str:
