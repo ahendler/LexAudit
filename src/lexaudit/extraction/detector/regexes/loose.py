@@ -53,7 +53,6 @@ GENERIC_LAW_REFERENCE_PATTERN = r"""
 """
 
 
-
 GENERIC_CASE_PATTERN = r"""
 (?:AgRg|AgInt|AgIn|AgR|ARE|RE|REsp|AREsp|AI|HC|MS|RMS|ADI|ADPF|ADO|ADC|ACO|EDcl|EDv|Embargos\s+de\s+Declara[cç][aã]o|PET|Rcl|SL|SLS|SS|TP)
 \s*
@@ -393,10 +392,6 @@ ARTICLE_LIST_PATTERN = r"""
 (?:\s*,\s*\d+[A-Za-z0-9º°\-]*)*
 (?:\s+e\s+\d+[A-Za-z0-9º°\-]*)?
 """
-
-
-
-
 
 
 __all__ = [

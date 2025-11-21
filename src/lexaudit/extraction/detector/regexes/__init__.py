@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from .compile import (
     COMMON_REGEX_FLAGS,
+    GROUP_METADATA,
+    LEXML_REFERENCE_REGEX,
+    REFERENCE_GROUP_METADATA,
     REFERENCE_PATTERN_SPECS,
     REFERENCE_REGEX,
-    REFERENCE_GROUP_METADATA,
-    LEXML_REFERENCE_REGEX,
-    GROUP_METADATA,
 )
 
 __all__ = [

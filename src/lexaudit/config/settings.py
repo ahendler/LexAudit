@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 from typing import Optional
+from pathlib import Path
 
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
-load_dotenv()
+load_dotenv(Path(__file__).parent.parent.parent.parent / "config" / ".env")
+
 
 class LexAuditSettings(BaseSettings):
 
-    linker_cmd: str = "docker run -i --rm lexmlbr/lexml-linker:latest /usr/bin/linkertool"
+    linker_cmd: str = (
+        "docker run -i --rm lexmlbr/lexml-linker:latest /usr/bin/linkertool"
+    )
     linker_context: str = "federal"
     linker_timeout: Optional[float] = 1.0
 
@@ -25,7 +29,8 @@ class LexAuditSettings(BaseSettings):
     serpapi_api_key: str = ""
     google_api_key: str = ""
     openai_api_key: str = ""
-
+    # Logging
+    logging_level: str = "INFO"
 
 
 SETTINGS = LexAuditSettings()

@@ -1,6 +1,7 @@
 """
 Prompt templates and output schemas for citation resolution.
 """
+
 from langchain_core.prompts import ChatPromptTemplate
 
 # TODO: Refinar few-shot examples e prompt
@@ -65,7 +66,12 @@ Saída: {
 
 
 # Main prompt template
-RESOLUTION_PROMPT = ChatPromptTemplate.from_messages([
-    ("system", RESOLUTION_SYSTEM_PROMPT),
-    ("user", "{examples}\n\nAgora resolva a seguinte citação:\n\n\"{citation_text}\"\nTipo: {citation_type}\n\nResponda com um objeto JSON.")
-])
+RESOLUTION_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        ("system", RESOLUTION_SYSTEM_PROMPT),
+        (
+            "user",
+            '{examples}\n\nAgora resolva a seguinte citação:\n\n"{citation_text}"\nTipo: {citation_type}\n\nResponda com um objeto JSON.',
+        ),
+    ]
+)

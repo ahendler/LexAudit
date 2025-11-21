@@ -1,15 +1,13 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 from html.parser import HTMLParser
-import logging
 from time import perf_counter
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from lexaudit.config.settings import SETTINGS
 from lexaudit.core.models import CitationSuspect, IdentifiedCitation
-from config.settings import SETTINGS
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +18,6 @@ class LinkerExecutionError(RuntimeError):
 
 class LinkerParsingError(RuntimeError):
     """Error parsing the decorated HTML returned by the Linker."""
-
 
 
 def _build_linker_args(
@@ -77,7 +74,12 @@ def _run_linker(
         raise LinkerExecutionError(
             f"Linker exited with code {completed.returncode}: {stderr.strip()}"
         )
-    logger.info("Linker concluído em %.3fs (exit=%s, bytes=%d)", dt, completed.returncode, len(completed.stdout))
+    logger.info(
+        "Linker concluído em %.3fs (exit=%s, bytes=%d)",
+        dt,
+        completed.returncode,
+        len(completed.stdout),
+    )
     return completed.stdout.decode("utf-8")
 
 
@@ -183,11 +185,11 @@ def run_linker(
                 start=start,
                 end=end,
                 detector_type="linker",
-                identified_citations=[ # List of identified citations that match this suspect
+                identified_citations=[  # List of identified citations that match this suspect
                     IdentifiedCitation(
                         identified_string=suspect_text,
                         formatted_name=suspect_text,
-                        citation_type=None,
+                        citation_type="unknown",
                         confidence=1.0,
                         justification="linker",
                     )

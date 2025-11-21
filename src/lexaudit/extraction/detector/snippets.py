@@ -2,12 +2,21 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-
 _HARD_PUNCT = {".", "!", "?"}
 _SOFT_PUNCT = {";", ":"}
 _ABBREVIATIONS = {
     # Common legal abbreviations in PT-BR that end with dot and should not split sentences
-    "art.", "arts.", "inc.", "incs.", "al.", "n.", "nº", "no.", "vol.", "v.", "vs.",
+    "art.",
+    "arts.",
+    "inc.",
+    "incs.",
+    "al.",
+    "n.",
+    "nº",
+    "no.",
+    "vol.",
+    "v.",
+    "vs.",
 }
 
 
@@ -34,7 +43,9 @@ def _looks_like_abbreviation(text: str, i: int) -> bool:
 def _is_hard_break(text: str, i: int) -> bool:
     c = text[i]
     if c in _HARD_PUNCT:
-        if c == "." and (_is_decimal_point(text, i) or _looks_like_abbreviation(text, i)):
+        if c == "." and (
+            _is_decimal_point(text, i) or _looks_like_abbreviation(text, i)
+        ):
             return False
         return True
     # Paragraph break (double newline) – treat the second as a hard break
@@ -125,11 +136,17 @@ def build_sentence_bounded_range(
     if start > end:
         start, end = end, start
 
-    left = start if lock_left else find_left_boundary(
-        text, start, min_chars=min_chars, max_backtrack=max_chars
+    left = (
+        start
+        if lock_left
+        else find_left_boundary(
+            text, start, min_chars=min_chars, max_backtrack=max_chars
+        )
     )
-    right = end if lock_right else find_right_boundary(
-        text, end, min_chars=min_chars, max_ahead=max_chars
+    right = (
+        end
+        if lock_right
+        else find_right_boundary(text, end, min_chars=min_chars, max_ahead=max_chars)
     )
     left = min(left, start)
     right = max(right, end)

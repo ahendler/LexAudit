@@ -89,7 +89,6 @@ JURISPRUDENCE_PATTERN = r"""
 """
 
 
-
 CNJ_NUMBER_PATTERN = r"""
 \b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b
 """

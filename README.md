@@ -149,3 +149,16 @@ for citation in report['extracted_citations']:
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
+## Formatting & Linting
+
+- **Run automatic fixes:** Apply lint/format auto-fixes across the repository:
+
+```powershell
+# Run ruff to auto-fix linting issues
+ruff --fix .
+# Sort imports
+isort .
+# Format code (black)
+black .
+```

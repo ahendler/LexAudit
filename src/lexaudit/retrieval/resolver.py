@@ -2,15 +2,15 @@
 Citation resolution module.
 Converts textual citations to canonical identifiers (URN:LEX) using LLM.
 """
-from typing import Optional, List
+
+import logging
+from typing import List, Optional
+
 from langchain_core.language_models.chat_models import BaseChatModel
 
-from ..core.models import ExtractedCitation, ResolvedCitation, ResolutionOutput
+from ..core.models import ExtractedCitation, ResolutionOutput, ResolvedCitation
 from ..core.structured_llm import StructuredLLM
-from ..prompts.resolution import (
-    RESOLUTION_PROMPT,
-    FEW_SHOT_EXAMPLES
-)
+from ..prompts.resolution import FEW_SHOT_EXAMPLES, RESOLUTION_PROMPT
 
 
 class CitationResolver:
@@ -22,7 +22,7 @@ class CitationResolver:
         self,
         llm: Optional[BaseChatModel] = None,
         model_name: Optional[str] = None,
-        temperature: Optional[float] = None
+        temperature: Optional[float] = None,
     ):
         """
         Initialize the resolver with a LangChain LLM.
@@ -39,7 +39,9 @@ class CitationResolver:
         )
         self.model_name = self.llm_core.model_name
 
-    def resolve_batch(self, citations: List[ExtractedCitation]) -> List[ResolvedCitation]:
+    def resolve_batch(
+        self, citations: List[ExtractedCitation]
+    ) -> List[ResolvedCitation]:
         """
         Resolve multiple citations.
 
@@ -49,16 +51,28 @@ class CitationResolver:
         Returns:
             List of resolved citations
         """
-        print(f"[RESOLVER] Resolving {len(citations)} citations...")
+        logger = logging.getLogger(__name__)
+        logger.info("Resolving %d citations...", len(citations))
         resolved = []
 
         for idx, citation in enumerate(citations, 1):
             resolved_citation = self.resolve(citation)
             if resolved_citation.canonical_id:
-                print(f"  [{idx}/{len(citations)}] OK {citation.formatted_name} -> {resolved_citation.canonical_id} (conf: {resolved_citation.resolution_confidence:.2f})")
+                logger.info(
+                    "  [%d/%d] OK %s -> %s (conf: %.2f)",
+                    idx,
+                    len(citations),
+                    citation.formatted_name,
+                    resolved_citation.canonical_id,
+                    resolved_citation.resolution_confidence,
+                )
             else:
-                print(
-                    f"  [{idx}/{len(citations)}] FAILED to resolve '{citation.formatted_name}'")
+                logger.warning(
+                    "  [%d/%d] FAILED to resolve '%s'",
+                    idx,
+                    len(citations),
+                    citation.formatted_name,
+                )
             resolved.append(resolved_citation)
 
         return resolved
@@ -96,7 +110,7 @@ class CitationResolver:
                 "model": self.model_name,
                 "reasoning": result.reasoning,
                 "llm_metadata": result.metadata or {},
-            }
+            },
         )
 
         return resolved

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from langchain_core.prompts import ChatPromptTemplate
 
-
 REVIEW_SYSTEM_PROMPT = """
 Você é um revisor de identificações de referências jurídicas.
 
