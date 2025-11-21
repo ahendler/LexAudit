@@ -189,7 +189,7 @@ def run_linker(
                     IdentifiedCitation(
                         identified_string=suspect_text,
                         formatted_name=suspect_text,
-                        citation_type=None,
+                        citation_type="unknown",
                         confidence=1.0,
                         justification="linker",
                     )
