@@ -53,14 +53,14 @@ class LexAuditPipeline:
 
         # STAGE 1: Extraction
         logger.info("[STAGE 1] Extracting citations from document %s...", document_id)
-        if pre_extracted_citations:
-            # Forward pre-extracted citations (placeholder)
-            analysis.extracted_citations = self.extractor.forward_extracted_citations(
-                pre_extracted_citations
-            )
-        else:
-            # Extract from text (not implemented yet)
-            analysis.extracted_citations = self.extractor.extract_from_text(text)
+        # if not pre_extracted_citations:
+        #     # Forward pre-extracted citations (placeholder)
+        #     analysis.extracted_citations = self.extractor.forward_extracted_citations(
+        #         pre_extracted_citations
+        #     )
+        # else:
+        #     # Extract from text (not implemented yet)
+        analysis.extracted_citations = self.extractor.extract_from_text(text)
 
         logger.info("  -> Extracted %d citations", len(analysis.extracted_citations))
 
