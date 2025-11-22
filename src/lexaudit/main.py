@@ -35,6 +35,7 @@ def load_stj_sample(file_path: str) -> List[Dict]:
             "id": item.get("id", "unknown"),
             "numero_processo": item.get("numeroProcesso", ""),
             "citations": item.get("referenciasLegislativas", []),
+            "inteiroTeor": item.get("inteiroTeor", ""),
             "metadata": {
                 "ementa": item.get("ementa", ""),
                 "data_decisao": item.get("dataDecisao", ""),
@@ -109,7 +110,7 @@ def main():
 
         # Run pipeline
         result = pipeline.process_document(
-            document_id=first_doc["id"], pre_extracted_citations=first_doc["citations"]
+            document_id=first_doc["id"], text=first_doc.get("inteiroTeor"), pre_extracted_citations=first_doc["citations"]
         )
 
         logger.info("")
