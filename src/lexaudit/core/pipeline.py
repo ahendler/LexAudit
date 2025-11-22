@@ -8,7 +8,7 @@ from typing import List
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
-from .models import DocumentAnalysis
+from .models import CitationRetrieval, DocumentAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -87,13 +87,28 @@ class LexAuditPipeline:
         # STAGE 3: Retrieval
         logger.info("[STAGE 3] Retrieving official documents...")
         retrieved_count = 0
+        citation_retrievals = []
         for resolved in analysis.resolved_citations:
             document = self.retriever.retrieve(resolved)
-            if document:
+            status = "success" if document else "not_found"
+            if status == "success":
                 retrieved_count += 1
-                # TODO: Store document for validation stage
 
-        logger.info("  -> Retrieved %d documents", retrieved_count)
+            retrieval = CitationRetrieval(
+                resolved_citation=resolved,
+                retrieved_document=document,
+                retrieval_status=status,
+                retrieval_metadata={},
+            )
+            citation_retrievals.append(retrieval)
+        analysis.citation_retrievals = citation_retrievals
+        analysis.metadata["citation_retrievals"] = citation_retrievals
+
+        logger.info(
+            "  -> Retrieved %d documents (total citations=%d)",
+            retrieved_count,
+            len(analysis.resolved_citations),
+        )
 
         # STAGE 4: Validation (not implemented yet)
         logger.info("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
