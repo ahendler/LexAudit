@@ -5,6 +5,7 @@ Citation extraction orchestrator.
 import logging
 from typing import List, Optional
 
+from .context_snippets import enhance_citation_snippet
 from ..core.models import CitationSuspect, ExtractedCitation, IdentifiedCitation
 from .detector import CitationDetector
 from .identification import CitationIdentifier
@@ -75,6 +76,12 @@ class CitationExtractor:
                     continue
 
         logger.info("Produced %d extracted citations", len(extracted))
+
+        if text and extracted:
+            logger.info("Enhancing context snippets for %d citations", len(extracted))
+            extracted = [
+                enhance_citation_snippet(text, citation) for citation in extracted
+            ]
 
         return extracted
 
