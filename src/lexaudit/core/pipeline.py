@@ -8,6 +8,8 @@ from typing import List
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
+from ..indexing.document_index import LegalDocumentIndex
+from ..indexing.embeddings import get_embeddings
 from .models import CitationRetrieval, DocumentAnalysis
 
 logger = logging.getLogger(__name__)
@@ -21,6 +23,7 @@ class LexAuditPipeline:
     1. Extraction: Identify citations in document
     2. Resolution: Convert citations to canonical IDs
     3. Retrieval: Fetch official documents
+    3.5. Indexing: Index retrieved documents for RAG
     4. Validation: Compare and validate using RAG agent
     """
 
@@ -29,6 +32,15 @@ class LexAuditPipeline:
         self.extractor = CitationExtractor()
         self.resolver = CitationResolver()
         self.retriever = LegalDocumentRetriever()
+        
+        # Initialize Indexer with configured embeddings
+        try:
+            embeddings = get_embeddings()
+            self.indexer = LegalDocumentIndex(embeddings)
+        except Exception as e:
+            logger.warning(f"Failed to initialize embeddings/indexer: {e}")
+            self.indexer = None
+        
         # TODO: Initialize validator when validation module is ready
         # self.validator = RAGValidator()
 
@@ -110,6 +122,25 @@ class LexAuditPipeline:
             len(analysis.resolved_citations),
         )
 
+        # STAGE 3.5: Indexing
+        if self.indexer:
+            logger.info("[STAGE 3.5] Indexing retrieved documents...")
+            indexed_count = 0
+            # For each citation retrieval
+            for retrieval in analysis.citation_retrievals:
+                if retrieval.retrieval_status == "success" and retrieval.retrieved_document:
+                    try:
+                        self.indexer.index_document(
+                            doc_id=retrieval.resolved_citation.canonical_id,
+                            full_text=retrieval.retrieved_document.full_text
+                        )
+                        indexed_count += 1
+                    except Exception as e:
+                        logger.error(f"Error indexing document {retrieval.resolved_citation.canonical_id}: {e}")
+            logger.info("  -> Indexed %d documents", indexed_count)
+        else:
+            logger.warning("[STAGE 3.5] Indexing skipped (indexer not initialized)")
+
         # STAGE 4: Validation (not implemented yet)
         logger.info("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
         # TODO: Implement validation with RAG agent
@@ -118,6 +149,12 @@ class LexAuditPipeline:
         #     analysis.validated_citations.append(validated)
 
         return analysis
+
+    def cleanup(self):
+        """Clean up resources (e.g. clear index)."""
+        if self.indexer:
+            logger.info("Cleaning up indexer resources...")
+            self.indexer.clear()
 
     def process_batch(self, documents: List[dict]) -> List[DocumentAnalysis]:
         """
