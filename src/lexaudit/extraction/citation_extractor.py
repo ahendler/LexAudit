@@ -9,6 +9,7 @@ from .context_snippets import enhance_citation_snippet
 from ..core.models import CitationSuspect, ExtractedCitation, IdentifiedCitation
 from .detector import CitationDetector
 from .identification import CitationIdentifier
+from ..config.settings import SETTINGS
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,19 @@ class CitationExtractor:
             len(regex_suspects),
             len(linker_detections),
         )
-
+        
+        # Apply citation processing limit if configured
+        limit = SETTINGS.citations_to_process
+        if limit is not None and limit >= 0:
+            regex_suspects = regex_suspects[:limit]
+            linker_detections = linker_detections[:limit]
+            logger.info(
+                "Applied limit of %d citations: regex=%d linker=%d",
+                limit,
+                len(regex_suspects),
+                len(linker_detections),
+            )
+        
         # Identify citations for regex suspects only
         logger.info("Running identification for %d regex suspects", len(regex_suspects))
         identified_regexes = (

@@ -48,5 +48,8 @@ class LexAuditSettings(BaseSettings):
     # Logging
     logging_level: str = "INFO"
 
+    # Citation processing limit (for debugging)
+    citations_to_process: Optional[int] = None
+
 
 SETTINGS = LexAuditSettings()

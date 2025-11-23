@@ -11,6 +11,7 @@ from ..retrieval.retriever import LegalDocumentRetriever
 from ..indexing.document_index import LegalDocumentIndex
 from ..indexing.embeddings import get_embeddings
 from .models import CitationRetrieval, DocumentAnalysis
+from ..config.settings import SETTINGS
 
 logger = logging.getLogger(__name__)
 
@@ -65,30 +66,25 @@ class LexAuditPipeline:
 
         # STAGE 1: Extraction
         logger.info("[STAGE 1] Extracting citations from document %s...", document_id)
-        # if not pre_extracted_citations:
-        #     # Forward pre-extracted citations (placeholder)
-        #     analysis.extracted_citations = self.extractor.forward_extracted_citations(
-        #         pre_extracted_citations
-        #     )
-        # else:
-        #     # Extract from text (not implemented yet)
+
         analysis.extracted_citations = self.extractor.extract_from_text(text)
 
         logger.info("  -> Extracted %d citations", len(analysis.extracted_citations))
 
         # STAGE 2: Resolution
+        limit = SETTINGS.citations_to_process
+        sample_citations = analysis.extracted_citations[:limit] if (limit is not None and limit >= 0) else analysis.extracted_citations
         logger.info(
-            "[STAGE 2] Resolving citations to canonical IDs... (Only the first 2 citations)"
+            "[STAGE 2] Resolving citations to canonical IDs (%s)...",
+            f"limit: {limit} citations" if limit is not None and limit >= 0 else f"all {len(sample_citations)} citations"
         )
-        # Extract the first two citations as a sample
-        sample_citations = analysis.extracted_citations[:2]
+
         for citation in sample_citations:
             resolved = self.resolver.resolve(citation)
             analysis.resolved_citations.append(resolved)
 
         logger.info("  -> Resolved %d citations", len(analysis.resolved_citations))
-        logger.info("     (showing first 2 resolved citations)")
-        for resolved in analysis.resolved_citations:
+        for resolved in analysis.resolved_citations[:3]:
             logger.info(
                 "     - %s -> %s (conf: %.2f)",
                 resolved.extracted_citation.formatted_name,
