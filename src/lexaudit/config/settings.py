@@ -3,8 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 from dotenv import load_dotenv
-from pydantic_settings import BaseSettings
+
 
 load_dotenv(Path(__file__).parent.parent.parent.parent / "config" / ".env")
 
@@ -29,6 +32,16 @@ class LexAuditSettings(BaseSettings):
     llm_provider: str = "gemini"
     llm_model: str = "gemini-2.5-flash"
     llm_temperature: float = 0.0
+
+    # Embeddings
+    embedding_provider: str = "gemini"  # gemini, openai, fake
+    embedding_model: str = "models/embedding-001"  # ou text-embedding-3-small, etc.
+    
+    # Vector Store
+    chroma_db_path: str = "data/chroma_db"
+    chroma_collection_name: str = "lexaudit_documents"
+    
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     serpapi_api_key: str = ""
     google_api_key: str = ""
