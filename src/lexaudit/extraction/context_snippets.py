@@ -34,7 +34,9 @@ def _paragraphs_from_blank_lines(text: str) -> List[Tuple[int, int]]:
     return ranges
 
 
-def _paragraphs_from_sentences(text: str, sentences_per_paragraph: int = 5) -> List[Tuple[int, int]]:
+def _paragraphs_from_sentences(
+    text: str, sentences_per_paragraph: int = 5
+) -> List[Tuple[int, int]]:
     """
     Build paragraph ranges by grouping sentences when the text has no explicit
     paragraph breaks.
@@ -121,7 +123,9 @@ def build_three_paragraph_snippet(
     center_idx = len(paragraphs) - 1
 
     for idx, (p_start, p_end) in enumerate(paragraphs):
-        if p_start <= start < p_end or (start == len(text) and p_start <= start <= p_end):
+        if p_start <= start < p_end or (
+            start == len(text) and p_start <= start <= p_end
+        ):
             center_idx = idx
             break
 

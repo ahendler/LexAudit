@@ -110,7 +110,9 @@ def main():
 
         # Run pipeline
         result = pipeline.process_document(
-            document_id=first_doc["id"], text=first_doc.get("inteiroTeor"), pre_extracted_citations=first_doc["citations"]
+            document_id=first_doc["id"],
+            text=first_doc.get("inteiroTeor"),
+            pre_extracted_citations=first_doc["citations"],
         )
 
         logger.info("")

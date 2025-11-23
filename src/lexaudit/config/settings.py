@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from dotenv import load_dotenv
@@ -36,11 +35,11 @@ class LexAuditSettings(BaseSettings):
     # Embeddings
     embedding_provider: str = "gemini"  # gemini, openai, fake
     embedding_model: str = "models/embedding-001"  # ou text-embedding-3-small, etc.
-    
+
     # Vector Store
     chroma_db_path: str = "data/chroma_db"
     chroma_collection_name: str = "lexaudit_documents"
-    
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     serpapi_api_key: str = ""

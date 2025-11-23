@@ -157,8 +157,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ```powershell
 # Run ruff to auto-fix linting issues
 ruff --fix .
-# Sort imports
-isort .
-# Format code (black)
-black .
 ```

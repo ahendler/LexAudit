@@ -32,7 +32,7 @@ class LexAuditPipeline:
         self.extractor = CitationExtractor()
         self.resolver = CitationResolver()
         self.retriever = LegalDocumentRetriever()
-        
+
         # Initialize Indexer with configured embeddings
         try:
             embeddings = get_embeddings()
@@ -40,7 +40,7 @@ class LexAuditPipeline:
         except Exception as e:
             logger.warning(f"Failed to initialize embeddings/indexer: {e}")
             self.indexer = None
-        
+
         # TODO: Initialize validator when validation module is ready
         # self.validator = RAGValidator()
 
@@ -128,15 +128,20 @@ class LexAuditPipeline:
             indexed_count = 0
             # For each citation retrieval
             for retrieval in analysis.citation_retrievals:
-                if retrieval.retrieval_status == "success" and retrieval.retrieved_document:
+                if (
+                    retrieval.retrieval_status == "success"
+                    and retrieval.retrieved_document
+                ):
                     try:
                         self.indexer.index_document(
                             doc_id=retrieval.resolved_citation.canonical_id,
-                            full_text=retrieval.retrieved_document.full_text
+                            full_text=retrieval.retrieved_document.full_text,
                         )
                         indexed_count += 1
                     except Exception as e:
-                        logger.error(f"Error indexing document {retrieval.resolved_citation.canonical_id}: {e}")
+                        logger.error(
+                            f"Error indexing document {retrieval.resolved_citation.canonical_id}: {e}"
+                        )
             logger.info("  -> Indexed %d documents", indexed_count)
         else:
             logger.warning("[STAGE 3.5] Indexing skipped (indexer not initialized)")
