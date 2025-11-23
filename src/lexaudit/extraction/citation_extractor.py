@@ -46,7 +46,7 @@ class CitationExtractor:
             len(regex_suspects),
             len(linker_detections),
         )
-        
+
         # Apply citation processing limit if configured
         limit = SETTINGS.citations_to_process
         if limit is not None and limit >= 0:
@@ -58,7 +58,7 @@ class CitationExtractor:
                 len(regex_suspects),
                 len(linker_detections),
             )
-        
+
         # Identify citations for regex suspects only
         logger.info("Running identification for %d regex suspects", len(regex_suspects))
         identified_regexes = (

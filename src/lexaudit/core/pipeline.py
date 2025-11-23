@@ -73,10 +73,16 @@ class LexAuditPipeline:
 
         # STAGE 2: Resolution
         limit = SETTINGS.citations_to_process
-        sample_citations = analysis.extracted_citations[:limit] if (limit is not None and limit >= 0) else analysis.extracted_citations
+        sample_citations = (
+            analysis.extracted_citations[:limit]
+            if (limit is not None and limit >= 0)
+            else analysis.extracted_citations
+        )
         logger.info(
             "[STAGE 2] Resolving citations to canonical IDs (%s)...",
-            f"limit: {limit} citations" if limit is not None and limit >= 0 else f"all {len(sample_citations)} citations"
+            f"limit: {limit} citations"
+            if limit is not None and limit >= 0
+            else f"all {len(sample_citations)} citations",
         )
 
         for citation in sample_citations:
