@@ -25,3 +25,4 @@ data/raw/**/*
 data/intermediate/**/*
 # data/cleaned/**/* # except final cleaned data 
 # !data/**/.gitkeep
+data/chroma_db/

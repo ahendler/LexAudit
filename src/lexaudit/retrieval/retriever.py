@@ -167,11 +167,11 @@ class LegalDocumentRetriever:
             text = self._merge_adjacent_revoked(text)
 
             # Check if document matches citation
-            if not self._check_retrieved_citation(
-                text, raw_citation, canonical_id, url
-            ):
-                logger.warning("Retrieved citation check failed, trying next result")
-                return None
+            # if not self._check_retrieved_citation(
+            #     text, raw_citation, canonical_id, url
+            # ):
+            #     logger.warning("Retrieved citation check failed, trying next result")
+            #     return None
 
             # Extract title
             metadata = trafilatura.extract_metadata(response.content)

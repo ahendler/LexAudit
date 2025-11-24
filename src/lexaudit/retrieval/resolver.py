@@ -93,7 +93,6 @@ class CitationResolver:
             "citation_text": citation.formatted_name,
             "citation_type": ct,
         }
-
         result = self.llm_core.invoke(
             RESOLUTION_PROMPT,
             values,

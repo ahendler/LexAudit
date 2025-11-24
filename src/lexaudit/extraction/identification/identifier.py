@@ -105,8 +105,8 @@ class CitationIdentifier:
             # Log raw structured result
             try:
                 logger.info(
-                    "LLM identify output: %s",
-                    output.model_dump_json(ensure_ascii=False),
+                    "LLM identify output: %s...",
+                    output.model_dump_json(ensure_ascii=False)[:100],
                 )
             except Exception:
                 logger.info(

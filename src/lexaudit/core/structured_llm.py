@@ -65,8 +65,8 @@ class StructuredLLM:
             result = ch.invoke(values)
             try:
                 logger.info(
-                    "Structured output: %s",
-                    result.model_dump_json(ensure_ascii=False),
+                    "Structured output: %s...",
+                    result.model_dump_json(ensure_ascii=False)[:100],
                 )
             except Exception:
                 logger.debug("[LLM] Structured output parsed")
@@ -80,7 +80,8 @@ class StructuredLLM:
         )
         response = self.llm.invoke(messages)
         try:
-            logger.info("Raw response: %s", getattr(response, "content", ""))
+            content = str(getattr(response, "content", ""))
+            logger.info("Raw response: %s...", content[:100])
         except Exception:
             logger.debug("Received response")
         parser = JsonOutputParser(pydantic_object=schema_model)

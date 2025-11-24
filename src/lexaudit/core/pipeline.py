@@ -8,7 +8,10 @@ from typing import List
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
-from .models import DocumentAnalysis
+from ..indexing.document_index import LegalDocumentIndex
+from ..indexing.embeddings import get_embeddings
+from .models import CitationRetrieval, DocumentAnalysis
+from ..config.settings import SETTINGS
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +24,7 @@ class LexAuditPipeline:
     1. Extraction: Identify citations in document
     2. Resolution: Convert citations to canonical IDs
     3. Retrieval: Fetch official documents
+    3.5. Indexing: Index retrieved documents for RAG
     4. Validation: Compare and validate using RAG agent
     """
 
@@ -29,6 +33,15 @@ class LexAuditPipeline:
         self.extractor = CitationExtractor()
         self.resolver = CitationResolver()
         self.retriever = LegalDocumentRetriever()
+
+        # Initialize Indexer with configured embeddings
+        try:
+            embeddings = get_embeddings()
+            self.indexer = LegalDocumentIndex(embeddings)
+        except Exception as e:
+            logger.warning(f"Failed to initialize embeddings/indexer: {e}")
+            self.indexer = None
+
         # TODO: Initialize validator when validation module is ready
         # self.validator = RAGValidator()
 
@@ -53,30 +66,31 @@ class LexAuditPipeline:
 
         # STAGE 1: Extraction
         logger.info("[STAGE 1] Extracting citations from document %s...", document_id)
-        # if not pre_extracted_citations:
-        #     # Forward pre-extracted citations (placeholder)
-        #     analysis.extracted_citations = self.extractor.forward_extracted_citations(
-        #         pre_extracted_citations
-        #     )
-        # else:
-        #     # Extract from text (not implemented yet)
+
         analysis.extracted_citations = self.extractor.extract_from_text(text)
 
         logger.info("  -> Extracted %d citations", len(analysis.extracted_citations))
 
         # STAGE 2: Resolution
-        logger.info(
-            "[STAGE 2] Resolving citations to canonical IDs... (Only the first 2 citations)"
+        limit = SETTINGS.citations_to_process
+        sample_citations = (
+            analysis.extracted_citations[:limit]
+            if (limit is not None and limit >= 0)
+            else analysis.extracted_citations
         )
-        # Extract the first two citations as a sample
-        sample_citations = analysis.extracted_citations[:2]
+        logger.info(
+            "[STAGE 2] Resolving citations to canonical IDs (%s)...",
+            f"limit: {limit} citations"
+            if limit is not None and limit >= 0
+            else f"all {len(sample_citations)} citations",
+        )
+
         for citation in sample_citations:
             resolved = self.resolver.resolve(citation)
             analysis.resolved_citations.append(resolved)
 
         logger.info("  -> Resolved %d citations", len(analysis.resolved_citations))
-        logger.info("     (showing first 2 resolved citations)")
-        for resolved in analysis.resolved_citations:
+        for resolved in analysis.resolved_citations[:3]:
             logger.info(
                 "     - %s -> %s (conf: %.2f)",
                 resolved.extracted_citation.formatted_name,
@@ -87,13 +101,52 @@ class LexAuditPipeline:
         # STAGE 3: Retrieval
         logger.info("[STAGE 3] Retrieving official documents...")
         retrieved_count = 0
+        citation_retrievals = []
         for resolved in analysis.resolved_citations:
             document = self.retriever.retrieve(resolved)
-            if document:
+            status = "success" if document else "not_found"
+            if status == "success":
                 retrieved_count += 1
-                # TODO: Store document for validation stage
 
-        logger.info("  -> Retrieved %d documents", retrieved_count)
+            retrieval = CitationRetrieval(
+                resolved_citation=resolved,
+                retrieved_document=document,
+                retrieval_status=status,
+                retrieval_metadata={},
+            )
+            citation_retrievals.append(retrieval)
+        analysis.citation_retrievals = citation_retrievals
+        analysis.metadata["citation_retrievals"] = citation_retrievals
+
+        logger.info(
+            "  -> Retrieved %d documents (total citations=%d)",
+            retrieved_count,
+            len(analysis.resolved_citations),
+        )
+
+        # STAGE 3.5: Indexing
+        if self.indexer:
+            logger.info("[STAGE 3.5] Indexing retrieved documents...")
+            indexed_count = 0
+            # For each citation retrieval
+            for retrieval in analysis.citation_retrievals:
+                if (
+                    retrieval.retrieval_status == "success"
+                    and retrieval.retrieved_document
+                ):
+                    try:
+                        self.indexer.index_document(
+                            doc_id=retrieval.resolved_citation.canonical_id,
+                            full_text=retrieval.retrieved_document.full_text,
+                        )
+                        indexed_count += 1
+                    except Exception as e:
+                        logger.error(
+                            f"Error indexing document {retrieval.resolved_citation.canonical_id}: {e}"
+                        )
+            logger.info("  -> Indexed %d documents", indexed_count)
+        else:
+            logger.warning("[STAGE 3.5] Indexing skipped (indexer not initialized)")
 
         # STAGE 4: Validation (not implemented yet)
         logger.info("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
@@ -103,6 +156,12 @@ class LexAuditPipeline:
         #     analysis.validated_citations.append(validated)
 
         return analysis
+
+    def cleanup(self):
+        """Clean up resources (e.g. clear index)."""
+        if self.indexer:
+            logger.info("Cleaning up indexer resources...")
+            self.indexer.clear()
 
     def process_batch(self, documents: List[dict]) -> List[DocumentAnalysis]:
         """

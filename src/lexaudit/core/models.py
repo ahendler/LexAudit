@@ -141,6 +141,26 @@ class RetrievedDocument(BaseModel):
         return f"RetrievedDocument(id={self.canonical_id}, source={self.source})"
 
 
+class CitationRetrieval(BaseModel):
+    """
+    Intermediate model linking a resolved citation to a retrieved document.
+
+    Represents the output of the retrieval stage (Stage 3), before any
+    validation/judgement by agents.
+    """
+
+    resolved_citation: ResolvedCitation
+    retrieved_document: Optional[RetrievedDocument] = None
+    retrieval_status: Literal["pending", "success", "not_found", "error"] = "pending"
+    retrieval_metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    def __repr__(self):
+        return (
+            f"CitationRetrieval(status={self.retrieval_status}, "
+            f"doc_id={getattr(self.retrieved_document, 'canonical_id', None)})"
+        )
+
+
 class ValidatedCitation(BaseModel):
     """Represents a validated citation with RAG agent results."""
 
@@ -160,6 +180,7 @@ class DocumentAnalysis(BaseModel):
     document_id: str
     extracted_citations: List[ExtractedCitation] = Field(default_factory=list)
     resolved_citations: List[ResolvedCitation] = Field(default_factory=list)
+    citation_retrievals: List[CitationRetrieval] = Field(default_factory=list)
     validated_citations: List[ValidatedCitation] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
