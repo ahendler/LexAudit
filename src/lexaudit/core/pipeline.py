@@ -8,7 +8,6 @@ from typing import List
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
-from ..validation.validator import CitationValidator
 from .models import CitationRetrieval, DocumentAnalysis
 from ..config.settings import SETTINGS
 
@@ -31,7 +30,9 @@ class LexAuditPipeline:
         self.extractor = CitationExtractor()
         self.resolver = CitationResolver()
         self.retriever = LegalDocumentRetriever()
-        self.validator = CitationValidator()
+
+        # TODO: Initialize validator when validation module is ready
+        # self.validator = RAGValidator()
 
     def process_document(
         self,
@@ -112,24 +113,12 @@ class LexAuditPipeline:
             len(analysis.resolved_citations),
         )
 
-        # STAGE 4: Validation
-        logger.info("[STAGE 4] Validating citations...")
-
-        analysis.validated_citations = self.validator.validate_batch(
-            analysis.citation_retrievals, document_id=document_id
-        )
-
-        logger.info(
-            "  -> Validated %d citations",
-            len(analysis.validated_citations),
-        )
-        for validated in analysis.validated_citations[:3]:
-            logger.info(
-                "     - %s -> %s (conf: %.2f)",
-                validated.resolved_citation.extracted_citation.formatted_name,
-                validated.validation_status.value,
-                validated.confidence,
-            )
+        # STAGE 4: Validation (not implemented yet)
+        logger.info("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
+        # TODO: Implement validation with RAG agent
+        # for resolved, document in zip(analysis.resolved_citations, retrieved_docs):
+        #     validated = self.validator.validate(resolved, document)
+        #     analysis.validated_citations.append(validated)
 
         return analysis
 
