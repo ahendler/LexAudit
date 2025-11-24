@@ -12,9 +12,6 @@ langchain-core==1.1.0
 langchain-google-genai==3.1.0
 langchain-openai==1.0.3
 
-# Vector Store
-langchain-chroma==1.0.0
-
 # Utils
 requests==2.32.5
 beautifulsoup4==4.14.2

@@ -167,11 +167,12 @@ class LegalDocumentRetriever:
             text = self._merge_adjacent_revoked(text)
 
             # Check if document matches citation
-            # if not self._check_retrieved_citation(
-            #     text, raw_citation, canonical_id, url
-            # ):
-            #     logger.warning("Retrieved citation check failed, trying next result")
-            #     return None
+            matches, extracted_text = self._check_retrieved_citation(
+                text, raw_citation, canonical_id, url
+            )
+            if not matches:
+                logger.warning("Retrieved citation check failed, trying next result")
+                return None
 
             # Extract title
             metadata = trafilatura.extract_metadata(response.content)
@@ -184,7 +185,11 @@ class LegalDocumentRetriever:
                 title=title.strip(),
                 full_text=f"{url}\n\n{text}",
                 source="web_search",
-                metadata={"publication_url": url, "retrieval_method": "trafilatura"},
+                metadata={
+                    "publication_url": url,
+                    "retrieval_method": "trafilatura",
+                    "extracted_text": extracted_text,
+                },
             )
 
             self._save_cached_page(url, doc)
@@ -244,11 +249,17 @@ class LegalDocumentRetriever:
 
     def _check_retrieved_citation(
         self, text: str, raw_citation: str, canonical_id: str, url: str
-    ) -> bool:
-        """Check that retrieved document matches the citation using LLM."""
+    ) -> tuple[bool, str]:
+        """Check that retrieved document matches the citation using LLM.
+        
+        Returns:
+            tuple[bool, str]: (matches, extracted_text) where matches indicates if the document
+                              matches the citation, and extracted_text contains the specific
+                              section mentioned in the citation (if applicable).
+        """
         if not self.llm.available:
             logger.error("LLM not available, skipping check")
-            return True  # Skip check if LLM not configured
+            return True, ""  # Skip check if LLM not configured
 
         try:
             # Send full document text for checking
@@ -272,10 +283,10 @@ class LegalDocumentRetriever:
                     len(check_result.extracted_text),
                     check_result.extracted_text,
                 )
-            return check_result.matches
+            return check_result.matches, check_result.extracted_text
         except Exception as e:
             logger.warning("Citation check failed: %s. Accepting document.", e)
-            return True  # Accept on error
+            return True, ""  # Accept on error
 
     # Pages cache helpers
     def _cache_file_path(self, url: str) -> str:

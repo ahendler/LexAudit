@@ -32,14 +32,6 @@ class LexAuditSettings(BaseSettings):
     llm_model: str = "gemini-2.5-flash"
     llm_temperature: float = 0.0
 
-    # Embeddings
-    embedding_provider: str = "gemini"  # gemini, openai, fake
-    embedding_model: str = "models/embedding-001"  # ou text-embedding-3-small, etc.
-
-    # Vector Store
-    chroma_db_path: str = "data/chroma_db"
-    chroma_collection_name: str = "lexaudit_documents"
-
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     serpapi_api_key: str = ""

@@ -16,7 +16,7 @@ Analise:
 Responda com:
 - matches: true se o documento corresponde à citação, false caso contrário
 - reasoning: explicação breve da sua decisão
-- extracted_text: se corresponde, extraia APENAS a parte específica mencionada na citação (ex: apenas o artigo citado). Se não há parte específica, deixe vazio.
+- extracted_text: se corresponde, extraia a parte específica mencionada na citação (ex: apenas o artigo citado). Se não há parte específica, deixe vazio. Se aplicável, traga também informações sobre os estado de revogação do artigo.
 """
 
 RETRIEVED_CITATION_CHECK_PROMPT = ChatPromptTemplate.from_messages(
