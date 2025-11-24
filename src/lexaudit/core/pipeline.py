@@ -73,7 +73,14 @@ class LexAuditPipeline:
             else f"all {len(sample_citations)} citations",
         )
 
-        for citation in sample_citations:
+        for idx, citation in enumerate(sample_citations, 1):
+            logger.info(
+                "  [%d/%d] Resolving: '%s' (type: %s)",
+                idx,
+                len(sample_citations),
+                citation.formatted_name,
+                citation.citation_type,
+            )
             resolved = self.resolver.resolve(citation)
             analysis.resolved_citations.append(resolved)
 
@@ -86,11 +93,26 @@ class LexAuditPipeline:
                 resolved.resolution_confidence,
             )
 
+        # Filter citations with valid URN:LEX identifiers
+        citations_with_urn = [
+            r for r in analysis.resolved_citations
+            if r.canonical_id and r.canonical_id.startswith("urn:lex:br:")
+        ]
+        skipped_count = len(analysis.resolved_citations) - len(citations_with_urn)
+        if skipped_count > 0:
+            logger.info(
+                "  -> Skipping %d citation(s) without valid URN:LEX identifier",
+                skipped_count,
+            )
+
         # STAGE 3: Retrieval
-        logger.info("[STAGE 3] Retrieving official documents...")
+        logger.info(
+            "[STAGE 3] Retrieving official documents for %d citation(s)...",
+            len(citations_with_urn),
+        )
         retrieved_count = 0
         citation_retrievals = []
-        for resolved in analysis.resolved_citations:
+        for resolved in citations_with_urn:
             document = self.retriever.retrieve(resolved)
             status = "success" if document else "not_found"
             if status == "success":
@@ -107,8 +129,10 @@ class LexAuditPipeline:
         analysis.metadata["citation_retrievals"] = citation_retrievals
 
         logger.info(
-            "  -> Retrieved %d documents (total citations=%d)",
+            "  -> Retrieved %d documents (attempted=%d, skipped=%d, total=%d)",
             retrieved_count,
+            len(citations_with_urn),
+            skipped_count,
             len(analysis.resolved_citations),
         )
 

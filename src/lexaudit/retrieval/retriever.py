@@ -77,9 +77,11 @@ class LegalDocumentRetriever:
         if canonical_id.startswith("urn:lex:br:"):
             return self._retrieve_from_google(canonical_id, raw_citation)
         else:
-            raise NotImplementedError(
-                "Retrieval for this citation type is not implemented yet."
+            logger.warning(
+                "Unsupported canonical ID format: %s (only urn:lex:br: is supported)",
+                canonical_id,
             )
+            return None
 
     def _retrieve_from_google(
         self, canonical_id: str, raw_citation: str
@@ -135,69 +137,73 @@ class LegalDocumentRetriever:
         """Fetch URL and extract main content using Trafilatura."""
         logger.info("Trying: %s", url)
 
-        # Check cache
-        cached = self._load_cached_page(url)
-        if cached:
-            logger.info("Cache hit")
-            return cached
+        # Check cache for page content (URL, title, full_text only)
+        cached_page = self._load_cached_page(url)
+        if cached_page:
+            logger.info("Cache hit for URL")
+            title = cached_page["title"]
+            text = cached_page["full_text"]
+        else:
+            # Fetch and extract page content
+            try:
+                response = self.session.get(url, timeout=15)
+                response.raise_for_status()
 
-        # Fetch and extract
-        try:
-            response = self.session.get(url, timeout=15)
-            response.raise_for_status()
+                # Preprocess HTML to mark strikethrough content
+                html_content = self._preprocess_strikethrough(response.content)
 
-            # Preprocess HTML to mark strikethrough content
-            html_content = self._preprocess_strikethrough(response.content)
+                # Extract main content with Trafilatura
+                # favor_recall=True prioritizes capturing more content over precision
+                text = trafilatura.extract(
+                    html_content,
+                    include_comments=False,
+                    include_tables=True,
+                    no_fallback=False,
+                    favor_recall=True,
+                )
 
-            # Extract main content with Trafilatura
-            # favor_recall=True prioritizes capturing more content over precision
-            text = trafilatura.extract(
-                html_content,
-                include_comments=False,
-                include_tables=True,
-                no_fallback=False,
-                favor_recall=True,
-            )
+                if not text or len(text) < 500:
+                    logger.warning("Content too short (%d chars)", len(text) if text else 0)
+                    return None
 
-            if not text or len(text) < 500:
-                logger.warning("Content too short (%d chars)", len(text) if text else 0)
+                # Post-process: merge adjacent revoked sections in extracted text
+                text = self._merge_adjacent_revoked(text)
+
+                # Extract title
+                metadata = trafilatura.extract_metadata(response.content)
+                title = metadata.title if metadata and metadata.title else canonical_id
+
+                logger.info("Retrieved %d characters", len(text))
+
+                # Cache the page content (without citation-specific data)
+                self._save_cached_page(url, title, text)
+
+            except Exception as e:
+                logger.warning("Failed to fetch %s: %s", url, e)
                 return None
 
-            # Post-process: merge adjacent revoked sections in extracted text
-            text = self._merge_adjacent_revoked(text)
-
-            # Check if document matches citation
-            matches, extracted_text = self._check_retrieved_citation(
-                text, raw_citation, canonical_id, url
-            )
-            if not matches:
-                logger.warning("Retrieved citation check failed, trying next result")
-                return None
-
-            # Extract title
-            metadata = trafilatura.extract_metadata(response.content)
-            title = metadata.title if metadata and metadata.title else canonical_id
-
-            logger.info("Retrieved %d characters", len(text))
-
-            doc = RetrievedDocument(
-                canonical_id=canonical_id,
-                title=title.strip(),
-                full_text=f"{url}\n\n{text}",
-                source="web_search",
-                metadata={
-                    "publication_url": url,
-                    "retrieval_method": "trafilatura",
-                    "extracted_text": extracted_text,
-                },
-            )
-
-            self._save_cached_page(url, doc)
-            return doc
-
-        except Exception as e:
-            logger.warning("Failed to fetch %s: %s", url, e)
+        # Always run citation-specific check and extraction (even for cached pages)
+        matches, extracted_text = self._check_retrieved_citation(
+            text, raw_citation, canonical_id, url
+        )
+        if not matches:
+            logger.warning("Retrieved citation check failed, trying next result")
             return None
+
+        # Build citation-specific document
+        doc = RetrievedDocument(
+            canonical_id=canonical_id,
+            title=title.strip(),
+            full_text=f"{url}\n\n{text}",
+            source="web_search",
+            metadata={
+                "publication_url": url,
+                "retrieval_method": "trafilatura",
+                "extracted_text": extracted_text,
+            },
+        )
+
+        return doc
 
     def _preprocess_strikethrough(self, html_content: bytes) -> str:
         """Preprocess HTML to mark strikethrough content with special markers."""
@@ -294,8 +300,12 @@ class LegalDocumentRetriever:
         key = hashlib.sha256(url.encode("utf-8")).hexdigest()
         return os.path.join(self.pages_cache_dir, f"{key}.json")
 
-    def _load_cached_page(self, url: str) -> Optional[RetrievedDocument]:
-        """Load a cached RetrievedDocument for a given URL if present."""
+    def _load_cached_page(self, url: str) -> Optional[dict]:
+        """Load cached page content (URL, title, full_text) if present.
+        
+        Returns:
+            dict with keys: url, title, full_text (without citation-specific data)
+        """
         path = self._cache_file_path(url)
         if not os.path.exists(path):
             return None
@@ -303,15 +313,19 @@ class LegalDocumentRetriever:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # Reconstruct RetrievedDocument
-        return RetrievedDocument(**data)
+        return data
 
-    def _save_cached_page(self, url: str, doc: RetrievedDocument) -> None:
-        """Save a RetrievedDocument to the pages cache."""
+    def _save_cached_page(self, url: str, title: str, full_text: str) -> None:
+        """Save page content to cache (without citation-specific data)."""
         path = self._cache_file_path(url)
         tmp_path = path + ".tmp"
+        cache_data = {
+            "url": url,
+            "title": title,
+            "full_text": full_text,
+        }
         with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(doc.dict(), f, ensure_ascii=False, indent=2)
+            json.dump(cache_data, f, ensure_ascii=False, indent=2)
         os.replace(tmp_path, path)
 
     # NOT WORKING YET

@@ -111,9 +111,17 @@ class ResolutionOutput(BaseModel):
     reasoning: str = Field(
         description="Brief explanation of how the canonical ID was determined"
     )
-    metadata: Optional[dict] = Field(
+    metadata: Optional[Dict[str, Any]] = Field(
         default=None, description="Additional metadata extracted from the citation"
     )
+    
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        """Custom validation to handle empty string metadata."""
+        if isinstance(obj, dict) and "metadata" in obj:
+            if obj["metadata"] == "" or obj["metadata"] is None:
+                obj["metadata"] = None
+        return super().model_validate(obj, **kwargs)
 
 
 class ResolvedCitation(BaseModel):
