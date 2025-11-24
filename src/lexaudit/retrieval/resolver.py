@@ -10,7 +10,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 
 from ..core.models import ExtractedCitation, ResolutionOutput, ResolvedCitation
 from ..core.structured_llm import StructuredLLM
-from ..prompts.resolution import FEW_SHOT_EXAMPLES, RESOLUTION_PROMPT
+from ..prompts.resolution import RESOLUTION_PROMPT
 
 
 class CitationResolver:
@@ -89,7 +89,6 @@ class CitationResolver:
         """
         ct = citation.citation_type
         values = {
-            "examples": FEW_SHOT_EXAMPLES,
             "citation_text": citation.formatted_name,
             "citation_type": ct,
         }

@@ -4,65 +4,33 @@ Prompt templates and output schemas for citation resolution.
 
 from langchain_core.prompts import ChatPromptTemplate
 
-# TODO: Refinar few-shot examples e prompt
 RESOLUTION_SYSTEM_PROMPT = """
 Você é um especialista em resolução de citações jurídicas, especializado em direito brasileiro.
-Sua tarefa é converter citações jurídicas informais em identificadores canônicos seguindo o padrão:
+Sua tarefa é converter citações jurídicas informais em identificadores canônicos seguindo o padrão URN:LEX.
 
-**Legislação (Leis, Decretos, Constituições)**:
-  - Use o formato URN:LEX : urn:lex:br:<jurisdição>:<tipo>:<ano>;<número>
-  - Exemplos:
-    * "Lei 9.656/98" → "urn:lex:br:federal:lei:1998;9656"
-    * "Decreto 3.048/99" → "urn:lex:br:federal:decreto:1999;3048"
-    * "CF/88, art. 5º" → "urn:lex:br:federal:constituicao:1988-10-05;1988"
+**Formato URN:LEX**: urn:lex:br:<jurisdição>:<tipo>:<ano>;<número>
+
+**Exemplos**:
+- "Lei 9.656/98" → "urn:lex:br:federal:lei:1998;9656"
+- "art. 51, IV, do CDC" → "urn:lex:br:federal:lei:1990;8078" (CDC = Lei 8.078/1990)
+- "CF/88, art. 5º" → "urn:lex:br:federal:constituicao:1988-10-05;1988"
+- "CP" → "urn:lex:br:federal:decreto.lei:1940-12-07;2848" (CP = Decreto-Lei 2848/1940)
+
+**IMPORTANTE**: A URN canônica identifica apenas o documento principal (lei, decreto, constituição).
+NÃO inclua artigos, incisos ou parágrafos na URN. Use o campo metadata para essas informações.
 
 **Pontuação de confiança**:
-  - 1.0: A URN é funcional e corresponde exatamente à citação fornecida
-  - 0.0 até 0.9: Indica a probabilidade da urn estar correta com base na citação fornecida
+- 1.0: URN funcional e corresponde exatamente à citação
+- 0.7-0.9: Boa probabilidade baseada no contexto
+- 0.0-0.6: Incerteza significativa
 
-Retorne sua resposta como um objeto JSON com: canonical_id, confidence, reasoning e metadata opcional."""
+Retorne JSON com: canonical_id, confidence, reasoning e metadata (opcional, para artigos/incisos)."""
 
 
-# Exemplos few-shot
-FEW_SHOT_EXAMPLES = """
-# Exemplos corretos
-## Exemplo 1:
-Citação: "CP - 040, 2848"
-Saída: {
-  "canonical_id": "urn:lex:br:federal:decreto.lei:1940-12-07;2848",
-  "confidence": 1.0,
-  "reasoning": "Referência legislativa completa com número e ano da lei. Necessário adicionar data para identificação do código penal.",
-  "metadata": {"type": "decreto.lei", "number": "2848", "year": "1940", "jurisdiction": "federal"}
-}
-
-## Exemplo 2:
-Citação: "art. 51, IV, do CDC"
-Saída: {
-  "canonical_id": "urn:lex:br:federal:lei:1990;8078",
-  "confidence": 0.85,
-  "reasoning": "CDC refere-se à Lei 8.078/1990 (Código de Defesa do Consumidor). Artigo e inciso claramente especificados.",
-  "metadata": {"type": "lei", "number": "8078", "year": "1990", "article": "51", "inciso": "IV", "common_name": "CDC"}
-}
-
-## Exemplo 3:
-Citação: "CF/88, art. 5º, XI"
-Saída: {
-  "canonical_id": "urn:lex:br:federal:constituicao:1988-10-05;1988",
-  "confidence": 0.95,
-  "reasoning": "Referência constitucional com artigo e inciso claramente identificados. O número romano XI convertido para 11.",
-  "metadata": {"type": "constituicao", "year": "1988", "article": "5", "inciso": "XI"}
-}
-
-# Exemplos incorretos
-## Exemplo 1:
-Citação: "CF/88, art. 5º, XI"
-Saída: {
-  "canonical_id": "urn:lex:br:federal:constituicao:1988-10-05;1988;art.5;inc.XI", -- INCORRETO: Artigo e inciso não devem ser incluídos na URN canônica
-  "confidence": 0.95,
-  "reasoning": "Referência constitucional com artigo e inciso claramente identificados. O número romano XI convertido para 11.",
-  "metadata": {"type": "constituicao", "year": "1988", "article": "5", "inciso": "XI"}
-}
-"""
+# Shortened examples for user message
+FEW_SHOT_EXAMPLES = """Exemplos de resolução:
+1. "CP - 040, 2848" → {"canonical_id": "urn:lex:br:federal:decreto.lei:1940-12-07;2848", "confidence": 1.0}
+2. "art. 51, IV, do CDC" → {"canonical_id": "urn:lex:br:federal:lei:1990;8078", "confidence": 0.85, "metadata": {"article": "51", "inciso": "IV"}}"""
 
 
 # Main prompt template
@@ -71,7 +39,7 @@ RESOLUTION_PROMPT = ChatPromptTemplate.from_messages(
         ("system", RESOLUTION_SYSTEM_PROMPT),
         (
             "user",
-            '{examples}\n\nAgora resolva a seguinte citação:\n\n"{citation_text}"\nTipo: {citation_type}\n\nResponda com um objeto JSON.',
+            'Resolva a citação:\n\n"{citation_text}"\nTipo: {citation_type}',
         ),
     ]
 )
