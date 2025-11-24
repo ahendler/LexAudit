@@ -139,9 +139,10 @@ class LexAuditPipeline:
         # STAGE 4: Validation
         logger.info("[STAGE 4] Validating citations...")
 
-        analysis.validated_citations = self.validator.validate_batch(
-            analysis.citation_retrievals, document_id=document_id
+        validated_citations, validation_outputs = self.validator.validate_batch(
+            analysis.citation_retrievals
         )
+        analysis.validated_citations = validated_citations
 
         logger.info(
             "  -> Validated %d citations",
@@ -155,7 +156,48 @@ class LexAuditPipeline:
                 validated.confidence,
             )
 
+        # Save detailed results to JSON
+        self._save_results(document_id, analysis, validation_outputs)
+
         return analysis
+
+    def _save_results(self, document_id: str, analysis: DocumentAnalysis, validation_outputs: List):
+        """Save pipeline results including all citations and agent thoughts."""
+        from datetime import datetime
+        from pathlib import Path
+        import json
+        
+        output_dir = Path("data/validation_outputs")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = output_dir / f"validation_{document_id}_{timestamp}.json"
+        
+        output_data = {
+            "document_id": document_id,
+            "timestamp": timestamp,
+            "summary": {
+                "total_extracted": len(analysis.extracted_citations),
+                "with_urn": len([r for r in analysis.resolved_citations if r.canonical_id]),
+                "without_urn": len([r for r in analysis.resolved_citations if not r.canonical_id]),
+                "validated": len(analysis.validated_citations),
+            },
+            "citations": [
+                {
+                    "citation_text": r.extracted_citation.formatted_name,
+                    "citation_type": r.extracted_citation.citation_type,
+                    "canonical_id": r.canonical_id or None,
+                    "context": r.extracted_citation.context_snippet[:200],
+                }
+                for r in analysis.resolved_citations
+            ],
+            "validations": [vo.model_dump() for vo in validation_outputs] if validation_outputs else [],
+        }
+        
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(output_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info("  -> Saved results to: %s", filepath)
 
     def process_batch(self, documents: List[dict]) -> List[DocumentAnalysis]:
         """

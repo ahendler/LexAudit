@@ -2,11 +2,8 @@
 Citation validator orchestrating triage and multi-agent debate.
 """
 
-import json
 import logging
-from datetime import datetime
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from ..core.models import (
     CitationRetrieval,
@@ -26,13 +23,10 @@ class CitationValidator:
     Orchestrates citation validation through triage and optional multi-agent debate.
     """
 
-    def __init__(self, output_dir: Optional[Path] = None):
+    def __init__(self):
         """Initialize validator components."""
         self.triage_agent = TriageAgent()
         self.debate_graph = DebateGraph()
-        self.output_dir = output_dir or Path("data/validation_outputs")
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.validation_outputs: List[ValidationOutput] = []
 
     def validate(self, citation_retrieval: CitationRetrieval) -> ValidatedCitation:
         """
@@ -106,66 +100,37 @@ class CitationValidator:
             final_justification=final_justification,
         )
 
-        self.validation_outputs.append(validation_output)
-
-        return ValidatedCitation(
+        validated_citation = ValidatedCitation(
             resolved_citation=resolved,
             retrieved_document=citation_retrieval.retrieved_document,
             validation_status=status,
             justification=final_justification,
             confidence=final_confidence,
         )
+        
+        return validated_citation, validation_output
 
     def validate_batch(
-        self, citation_retrievals: List[CitationRetrieval], document_id: str = "unknown"
-    ) -> List[ValidatedCitation]:
+        self, citation_retrievals: List[CitationRetrieval]
+    ) -> tuple[List[ValidatedCitation], List[ValidationOutput]]:
         """
         Validate multiple citations.
 
         Args:
             citation_retrievals: List of citations with retrieved documents
-            document_id: Document identifier for output file naming
 
         Returns:
-            List of validated citations
+            Tuple of (validated_citations, validation_outputs)
         """
-        self.validation_outputs = []
         validated = []
+        validation_outputs = []
 
         for retrieval in citation_retrievals:
-            validated_citation = self.validate(retrieval)
+            validated_citation, validation_output = self.validate(retrieval)
             validated.append(validated_citation)
+            validation_outputs.append(validation_output)
 
-        self._save_outputs(document_id)
-
-        return validated
-
-    def _save_outputs(self, document_id: str):
-        """
-        Save validation outputs to JSON file.
-
-        Args:
-            document_id: Document identifier for file naming
-        """
-        if not self.validation_outputs:
-            logger.warning("No validation outputs to save")
-            return
-
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"validation_{document_id}_{timestamp}.json"
-        filepath = self.output_dir / filename
-
-        output_data = {
-            "document_id": document_id,
-            "timestamp": timestamp,
-            "total_citations": len(self.validation_outputs),
-            "validations": [output.model_dump() for output in self.validation_outputs],
-        }
-
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(output_data, f, ensure_ascii=False, indent=2)
-
-        logger.info("  -> Saved validation outputs to: %s", filepath)
+        return validated, validation_outputs
 
     @staticmethod
     def _map_status(status_str: str) -> ValidationStatus:
