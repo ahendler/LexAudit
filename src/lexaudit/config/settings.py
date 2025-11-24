@@ -32,8 +32,6 @@ class LexAuditSettings(BaseSettings):
     llm_model: str = "gemini-2.5-flash"
     llm_temperature: float = 0.0
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
-
     serpapi_api_key: str = ""
     google_api_key: str = ""
     openai_api_key: str = ""
@@ -46,6 +44,10 @@ class LexAuditSettings(BaseSettings):
     # Validation settings
     validation_confidence_threshold: float = 0.75
     debate_rounds: int = 2
+
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
 
 SETTINGS = LexAuditSettings()

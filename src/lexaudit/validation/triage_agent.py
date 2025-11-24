@@ -8,7 +8,6 @@ from typing import Dict, Any
 from ..core.structured_llm import StructuredLLM
 from ..core.models import CitationRetrieval, TriageDecision
 from ..prompts.validation import TRIAGE_PROMPT
-from ..config.settings import SETTINGS
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,6 @@ class TriageAgent:
     def __init__(self):
         """Initialize triage agent with structured LLM."""
         self.llm = StructuredLLM()
-        self.confidence_threshold = SETTINGS.validation_confidence_threshold
 
     def analyze(self, citation_retrieval: CitationRetrieval) -> TriageDecision:
         """

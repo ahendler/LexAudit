@@ -93,7 +93,7 @@ class CitationResolver:
             "citation_text": citation.formatted_name,
             "citation_type": ct,
         }
-        
+
         # Debug: Log the input values
         logger.debug(
             "Resolution input - text: '%s...' (len=%d), type: '%s'",
@@ -101,20 +101,20 @@ class CitationResolver:
             len(citation.formatted_name),
             ct,
         )
-        
+
         # Direct invocation bypasses with_structured_output which has timeout issues
         import json
         import re
-        
+
         messages = RESOLUTION_PROMPT.format_messages(**values)
         response = self.llm_core.llm.invoke(messages)
         content = response.content
-        
+
         # Extract JSON from markdown code blocks if present
-        json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
         if json_match:
             content = json_match.group(1)
-        
+
         parsed = json.loads(content)
         result = ResolutionOutput.model_validate(parsed)
 

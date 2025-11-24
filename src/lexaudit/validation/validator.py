@@ -107,7 +107,7 @@ class CitationValidator:
             justification=final_justification,
             confidence=final_confidence,
         )
-        
+
         return validated_citation, validation_output
 
     def validate_batch(

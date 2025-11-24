@@ -163,7 +163,9 @@ class LegalDocumentRetriever:
                 )
 
                 if not text or len(text) < 500:
-                    logger.warning("Content too short (%d chars)", len(text) if text else 0)
+                    logger.warning(
+                        "Content too short (%d chars)", len(text) if text else 0
+                    )
                     return None
 
                 # Post-process: merge adjacent revoked sections in extracted text
@@ -302,7 +304,7 @@ class LegalDocumentRetriever:
 
     def _load_cached_page(self, url: str) -> Optional[dict]:
         """Load cached page content (URL, title, full_text) if present.
-        
+
         Returns:
             dict with keys: url, title, full_text (without citation-specific data)
         """

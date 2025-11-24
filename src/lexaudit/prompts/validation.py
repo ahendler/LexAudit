@@ -20,17 +20,18 @@ Você deve analisar autonomamente e decidir com confiança >= 0.75 nos casos cla
 - Presença clara de marcadores de revogação → REVOGADA
 - Documento não recuperado → INEXISTENTE
 
-Para casos de INTERPRETAÇÃO JURÍDICA complexa ou ambíguos (confiança < 0.75):
-- Defina needs_discussion=true para acionar discussão multi-agente
-- Use preliminary_status="pending"
+Para casos de INTERPRETAÇÃO JURÍDICA complexa ou ambíguos:
+- Atribua confiança baixa (< 0.75)
+- Use preliminary_status="pending" se não puder decidir
 
 Formato de saída (JSON):
 {{
-  "needs_discussion": boolean,
   "confidence": float (0.0-1.0),
   "preliminary_status": "correct"|"outdated"|"incorrect"|"non_existent"|"pending",
   "reasoning": "Explicação detalhada com evidências inline. Use [TEXTO OFICIAL: '...'] e [CONTEXTO CITAÇÃO: '...'] para incluir trechos relevantes."
 }}
+
+NOTA: Casos com confiança < 0.75 ou status pending serão automaticamente encaminhados para discussão multi-agente.
 
 Seja rigoroso e baseie sua decisão em evidências textuais concretas.
 """

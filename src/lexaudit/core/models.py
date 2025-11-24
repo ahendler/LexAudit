@@ -114,7 +114,7 @@ class ResolutionOutput(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(
         default=None, description="Additional metadata extracted from the citation"
     )
-    
+
     @classmethod
     def model_validate(cls, obj, **kwargs):
         """Custom validation to handle empty string metadata."""
@@ -172,9 +172,6 @@ class CitationRetrieval(BaseModel):
 class TriageDecision(BaseModel):
     """Decision output from the triage agent."""
 
-    needs_discussion: bool = Field(
-        description="Whether the citation requires multi-agent discussion"
-    )
     confidence: float = Field(
         description="Confidence score between 0 and 1",
         ge=0.0,
@@ -186,6 +183,16 @@ class TriageDecision(BaseModel):
     reasoning: str = Field(
         description="Detailed reasoning with inline evidence from official text"
     )
+
+    @property
+    def needs_discussion(self) -> bool:
+        """Computed property - requires discussion if confidence is below threshold or status is pending."""
+        from ..config.settings import SETTINGS
+
+        return (
+            self.confidence < SETTINGS.validation_confidence_threshold
+            or self.preliminary_status == "pending"
+        )
 
 
 class DebateOutput(BaseModel):
