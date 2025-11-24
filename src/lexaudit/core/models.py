@@ -161,6 +161,46 @@ class CitationRetrieval(BaseModel):
         )
 
 
+class TriageDecision(BaseModel):
+    """Decision from the triage agent on how to handle validation."""
+
+    needs_discussion: bool = Field(
+        ...,
+        description="Whether this citation requires multi-agent discussion",
+    )
+    confidence: float = Field(
+        ...,
+        ge=0.0,
+        le=1.0,
+        description="Confidence in the preliminary assessment",
+    )
+    preliminary_status: ValidationStatus = Field(
+        ...,
+        description="Initial status assessment before discussion",
+    )
+    reasoning: str = Field(
+        ...,
+        description="Reasoning for the triage decision",
+    )
+
+
+class AgentArgument(BaseModel):
+    """Represents an argument from an agent in the discussion."""
+
+    role: Literal["advocate", "skeptic"] = Field(
+        ...,
+        description="The role of the agent making the argument",
+    )
+    reasoning: str = Field(
+        ...,
+        description="The agent's reasoning and argument",
+    )
+    evidence_chunks: List[str] = Field(
+        default_factory=list,
+        description="Relevant text chunks from the official document used as evidence",
+    )
+
+
 class ValidatedCitation(BaseModel):
     """Represents a validated citation with RAG agent results."""
 
@@ -169,6 +209,10 @@ class ValidatedCitation(BaseModel):
     validation_status: ValidationStatus = ValidationStatus.PENDING
     justification: str = ""
     confidence: float = 0.0
+    discussion_messages: List[AgentArgument] = Field(
+        default_factory=list,
+        description="History of agent arguments if multi-agent discussion was triggered",
+    )
 
     def __repr__(self):
         return f"ValidatedCitation(status={self.validation_status.value}, confidence={self.confidence})"

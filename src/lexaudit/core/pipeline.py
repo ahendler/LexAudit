@@ -10,6 +10,7 @@ from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
 from ..indexing.document_index import LegalDocumentIndex
 from ..indexing.embeddings import get_embeddings
+from ..validation.validator import RAGValidator
 from .models import CitationRetrieval, DocumentAnalysis
 from ..config.settings import SETTINGS
 
@@ -42,8 +43,15 @@ class LexAuditPipeline:
             logger.warning(f"Failed to initialize embeddings/indexer: {e}")
             self.indexer = None
 
-        # TODO: Initialize validator when validation module is ready
-        # self.validator = RAGValidator()
+        # Initialize validator
+        if self.indexer:
+            try:
+                self.validator = RAGValidator(self.indexer)
+            except Exception as e:
+                logger.warning(f"Failed to initialize validator: {e}")
+                self.validator = None
+        else:
+            self.validator = None
 
     def process_document(
         self,
@@ -148,12 +156,27 @@ class LexAuditPipeline:
         else:
             logger.warning("[STAGE 3.5] Indexing skipped (indexer not initialized)")
 
-        # STAGE 4: Validation (not implemented yet)
-        logger.info("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
-        # TODO: Implement validation with RAG agent
-        # for resolved, document in zip(analysis.resolved_citations, retrieved_docs):
-        #     validated = self.validator.validate(resolved, document)
-        #     analysis.validated_citations.append(validated)
+        # STAGE 4: Validation
+        if self.validator:
+            logger.info("[STAGE 4] Validating citations with multi-agent system...")
+            validated_count = 0
+            for retrieval in analysis.citation_retrievals:
+                try:
+                    validated = self.validator.validate(retrieval)
+                    analysis.validated_citations.append(validated)
+                    if validated.validation_status.value != "pending":
+                        validated_count += 1
+                except Exception as e:
+                    logger.error(
+                        f"Error validating citation {retrieval.resolved_citation.canonical_id}: {e}"
+                    )
+            logger.info(
+                "  -> Validated %d citations (total=%d)",
+                validated_count,
+                len(analysis.citation_retrievals),
+            )
+        else:
+            logger.warning("[STAGE 4] Validation skipped (validator not initialized)")
 
         return analysis
 
