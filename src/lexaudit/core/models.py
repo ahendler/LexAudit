@@ -161,6 +161,48 @@ class CitationRetrieval(BaseModel):
         )
 
 
+class TriageDecision(BaseModel):
+    """Decision output from the triage agent."""
+
+    needs_discussion: bool = Field(
+        description="Whether the citation requires multi-agent discussion"
+    )
+    confidence: float = Field(
+        description="Confidence score between 0 and 1",
+        ge=0.0,
+        le=1.0,
+    )
+    preliminary_status: str = Field(
+        description="Preliminary validation status: correct, outdated, incorrect, non_existent, or pending"
+    )
+    reasoning: str = Field(
+        description="Detailed reasoning with inline evidence from official text"
+    )
+
+
+class DebateOutput(BaseModel):
+    """Output from multi-agent debate."""
+
+    validation_status: str
+    confidence: float
+    justification: str
+    consensus_level: str
+    verifier_arguments: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ValidationOutput(BaseModel):
+    """Complete validation output for a citation."""
+
+    citation_reference: str
+    citation_context: str
+    canonical_id: Optional[str] = None
+    triage_decision: TriageDecision
+    debate_output: Optional[DebateOutput] = None
+    final_status: str
+    final_confidence: float
+    final_justification: str
+
+
 class ValidatedCitation(BaseModel):
     """Represents a validated citation with RAG agent results."""
 

@@ -43,5 +43,9 @@ class LexAuditSettings(BaseSettings):
     # Citation processing limit (for debugging)
     citations_to_process: Optional[int] = None
 
+    # Validation settings
+    validation_confidence_threshold: float = 0.75
+    debate_rounds: int = 2
+
 
 SETTINGS = LexAuditSettings()

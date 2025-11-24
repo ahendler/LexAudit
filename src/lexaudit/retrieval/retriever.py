@@ -251,7 +251,7 @@ class LegalDocumentRetriever:
         self, text: str, raw_citation: str, canonical_id: str, url: str
     ) -> tuple[bool, str]:
         """Check that retrieved document matches the citation using LLM.
-        
+
         Returns:
             tuple[bool, str]: (matches, extracted_text) where matches indicates if the document
                               matches the citation, and extracted_text contains the specific
