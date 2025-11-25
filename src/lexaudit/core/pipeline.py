@@ -8,6 +8,7 @@ from typing import List
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
 from ..retrieval.retriever import LegalDocumentRetriever
+from ..validation.validator import CitationValidator
 from .models import CitationRetrieval, DocumentAnalysis
 from ..config.settings import SETTINGS
 
@@ -30,9 +31,7 @@ class LexAuditPipeline:
         self.extractor = CitationExtractor()
         self.resolver = CitationResolver()
         self.retriever = LegalDocumentRetriever()
-
-        # TODO: Initialize validator when validation module is ready
-        # self.validator = RAGValidator()
+        self.validator = CitationValidator()
 
     def process_document(
         self,
@@ -74,7 +73,14 @@ class LexAuditPipeline:
             else f"all {len(sample_citations)} citations",
         )
 
-        for citation in sample_citations:
+        for idx, citation in enumerate(sample_citations, 1):
+            logger.info(
+                "  [%d/%d] Resolving: '%s' (type: %s)",
+                idx,
+                len(sample_citations),
+                citation.formatted_name,
+                citation.citation_type,
+            )
             resolved = self.resolver.resolve(citation)
             analysis.resolved_citations.append(resolved)
 
@@ -87,11 +93,27 @@ class LexAuditPipeline:
                 resolved.resolution_confidence,
             )
 
+        # Filter citations with valid URN:LEX identifiers
+        citations_with_urn = [
+            r
+            for r in analysis.resolved_citations
+            if r.canonical_id and r.canonical_id.startswith("urn:lex:br:")
+        ]
+        skipped_count = len(analysis.resolved_citations) - len(citations_with_urn)
+        if skipped_count > 0:
+            logger.info(
+                "  -> Skipping %d citation(s) without valid URN:LEX identifier",
+                skipped_count,
+            )
+
         # STAGE 3: Retrieval
-        logger.info("[STAGE 3] Retrieving official documents...")
+        logger.info(
+            "[STAGE 3] Retrieving official documents for %d citation(s)...",
+            len(citations_with_urn),
+        )
         retrieved_count = 0
         citation_retrievals = []
-        for resolved in analysis.resolved_citations:
+        for resolved in citations_with_urn:
             document = self.retriever.retrieve(resolved)
             status = "success" if document else "not_found"
             if status == "success":
@@ -108,19 +130,83 @@ class LexAuditPipeline:
         analysis.metadata["citation_retrievals"] = citation_retrievals
 
         logger.info(
-            "  -> Retrieved %d documents (total citations=%d)",
+            "  -> Retrieved %d documents (attempted=%d, skipped=%d, total=%d)",
             retrieved_count,
+            len(citations_with_urn),
+            skipped_count,
             len(analysis.resolved_citations),
         )
 
-        # STAGE 4: Validation (not implemented yet)
-        logger.info("[STAGE 4] Validating citations (NOT IMPLEMENTED YET)...")
-        # TODO: Implement validation with RAG agent
-        # for resolved, document in zip(analysis.resolved_citations, retrieved_docs):
-        #     validated = self.validator.validate(resolved, document)
-        #     analysis.validated_citations.append(validated)
+        # STAGE 4: Validation
+        logger.info("[STAGE 4] Validating citations...")
+
+        validated_citations, validation_outputs = self.validator.validate_batch(
+            analysis.citation_retrievals
+        )
+        analysis.validated_citations = validated_citations
+
+        logger.info(
+            "  -> Validated %d citations",
+            len(analysis.validated_citations),
+        )
+        for validated in analysis.validated_citations[:3]:
+            logger.info(
+                "     - %s -> %s (conf: %.2f)",
+                validated.resolved_citation.extracted_citation.formatted_name,
+                validated.validation_status.value,
+                validated.confidence,
+            )
+
+        # Save detailed results to JSON
+        self._save_results(document_id, analysis, validation_outputs)
 
         return analysis
+
+    def _save_results(
+        self, document_id: str, analysis: DocumentAnalysis, validation_outputs: List
+    ):
+        """Save pipeline results including all citations and agent thoughts."""
+        from datetime import datetime
+        from pathlib import Path
+        import json
+
+        output_dir = Path("data/validation_outputs")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filepath = output_dir / f"validation_{document_id}_{timestamp}.json"
+
+        output_data = {
+            "document_id": document_id,
+            "timestamp": timestamp,
+            "summary": {
+                "total_extracted": len(analysis.extracted_citations),
+                "with_urn": len(
+                    [r for r in analysis.resolved_citations if r.canonical_id]
+                ),
+                "without_urn": len(
+                    [r for r in analysis.resolved_citations if not r.canonical_id]
+                ),
+                "validated": len(analysis.validated_citations),
+            },
+            "citations": [
+                {
+                    "citation_text": r.extracted_citation.formatted_name,
+                    "citation_type": r.extracted_citation.citation_type,
+                    "canonical_id": r.canonical_id or None,
+                    "context": r.extracted_citation.context_snippet[:200],
+                }
+                for r in analysis.resolved_citations
+            ],
+            "validations": [vo.model_dump() for vo in validation_outputs]
+            if validation_outputs
+            else [],
+        }
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(output_data, f, ensure_ascii=False, indent=2)
+
+        logger.info("  -> Saved results to: %s", filepath)
 
     def process_batch(self, documents: List[dict]) -> List[DocumentAnalysis]:
         """

@@ -111,9 +111,17 @@ class ResolutionOutput(BaseModel):
     reasoning: str = Field(
         description="Brief explanation of how the canonical ID was determined"
     )
-    metadata: Optional[dict] = Field(
+    metadata: Optional[Dict[str, Any]] = Field(
         default=None, description="Additional metadata extracted from the citation"
     )
+
+    @classmethod
+    def model_validate(cls, obj, **kwargs):
+        """Custom validation to handle empty string metadata."""
+        if isinstance(obj, dict) and "metadata" in obj:
+            if obj["metadata"] == "" or obj["metadata"] is None:
+                obj["metadata"] = None
+        return super().model_validate(obj, **kwargs)
 
 
 class ResolvedCitation(BaseModel):
@@ -159,6 +167,55 @@ class CitationRetrieval(BaseModel):
             f"CitationRetrieval(status={self.retrieval_status}, "
             f"doc_id={getattr(self.retrieved_document, 'canonical_id', None)})"
         )
+
+
+class TriageDecision(BaseModel):
+    """Decision output from the triage agent."""
+
+    confidence: float = Field(
+        description="Confidence score between 0 and 1",
+        ge=0.0,
+        le=1.0,
+    )
+    preliminary_status: str = Field(
+        description="Preliminary validation status: correct, outdated, incorrect, non_existent, or pending"
+    )
+    reasoning: str = Field(
+        description="Detailed reasoning with inline evidence from official text"
+    )
+
+    @property
+    def needs_discussion(self) -> bool:
+        """Computed property - requires discussion if confidence is below threshold or status is pending."""
+        from ..config.settings import SETTINGS
+
+        return (
+            self.confidence < SETTINGS.validation_confidence_threshold
+            or self.preliminary_status == "pending"
+        )
+
+
+class DebateOutput(BaseModel):
+    """Output from multi-agent debate."""
+
+    validation_status: str
+    confidence: float
+    justification: str
+    consensus_level: str
+    verifier_arguments: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ValidationOutput(BaseModel):
+    """Complete validation output for a citation."""
+
+    citation_reference: str
+    citation_context: str
+    canonical_id: Optional[str] = None
+    triage_decision: TriageDecision
+    debate_output: Optional[DebateOutput] = None
+    final_status: str
+    final_confidence: float
+    final_justification: str
 
 
 class ValidatedCitation(BaseModel):
