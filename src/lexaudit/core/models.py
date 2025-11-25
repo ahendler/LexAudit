@@ -119,8 +119,13 @@ class ResolutionOutput(BaseModel):
     def model_validate(cls, obj, **kwargs):
         """Custom validation to handle empty string metadata."""
         if isinstance(obj, dict) and "metadata" in obj:
-            if obj["metadata"] == "" or obj["metadata"] is None:
+            metadata_value = obj["metadata"]
+            if metadata_value == "" or metadata_value is None:
                 obj["metadata"] = None
+            elif isinstance(metadata_value, str):
+                obj["metadata"] = {"raw": metadata_value}
+            elif not isinstance(metadata_value, dict):
+                obj["metadata"] = {"raw": str(metadata_value)}
         return super().model_validate(obj, **kwargs)
 
 

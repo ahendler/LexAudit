@@ -6,6 +6,8 @@ import hashlib
 import json
 import logging
 import os
+import tempfile
+import uuid
 import xml.etree.ElementTree as ET
 from typing import Optional
 
@@ -320,7 +322,10 @@ class LegalDocumentRetriever:
     def _save_cached_page(self, url: str, title: str, full_text: str) -> None:
         """Save page content to cache (without citation-specific data)."""
         path = self._cache_file_path(url)
-        tmp_path = path + ".tmp"
+        tmp_dir = os.path.dirname(path)
+        os.makedirs(tmp_dir, exist_ok=True)
+        # Unique tmp file to avoid collisions when running in parallel
+        tmp_path = os.path.join(tmp_dir, f".{uuid.uuid4().hex}.tmp")
         cache_data = {
             "url": url,
             "title": title,

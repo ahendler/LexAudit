@@ -116,7 +116,25 @@ class CitationResolver:
             content = json_match.group(1)
 
         parsed = json.loads(content)
-        result = ResolutionOutput.model_validate(parsed)
+        try:
+            result = ResolutionOutput.model_validate(parsed)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Resolution output validation failed for '%s': %s. Returning empty resolution.",
+                citation.formatted_name,
+                exc,
+            )
+            return ResolvedCitation(
+                extracted_citation=citation,
+                canonical_id=None,
+                resolution_confidence=0.0,
+                resolution_metadata={
+                    "method": "llm",
+                    "model": self.model_name,
+                    "error": "validation_failed",
+                    "raw_response": content,
+                },
+            )
 
         # Create resolved citation
         resolved = ResolvedCitation(
