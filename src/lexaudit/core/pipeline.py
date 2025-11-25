@@ -3,7 +3,8 @@ LexAudit Pipeline - Orchestrates the full validation process.
 """
 
 import logging
-from typing import List
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Tuple
 
 from ..extraction.citation_extractor import CitationExtractor
 from ..retrieval.resolver import CitationResolver
@@ -38,6 +39,7 @@ class LexAuditPipeline:
         document_id: str,
         text: str = "",
         pre_extracted_citations: List[str] = None,
+        max_retrieval_workers: int = 1,
     ) -> DocumentAnalysis:
         """
         Process a document through the full pipeline.
@@ -108,32 +110,78 @@ class LexAuditPipeline:
 
         # STAGE 3: Retrieval
         logger.info(
-            "[STAGE 3] Retrieving official documents for %d citation(s)...",
+            "[STAGE 3] Retrieving official documents for %d citation(s) (workers=%d)...",
             len(citations_with_urn),
+            max_retrieval_workers,
         )
-        retrieved_count = 0
-        citation_retrievals = []
-        for resolved in citations_with_urn:
-            document = self.retriever.retrieve(resolved)
-            status = "success" if document else "not_found"
-            if status == "success":
-                retrieved_count += 1
 
-            retrieval = CitationRetrieval(
-                resolved_citation=resolved,
-                retrieved_document=document,
-                retrieval_status=status,
-                retrieval_metadata={},
-            )
-            citation_retrievals.append(retrieval)
+        def _retrieve_single(resolved, shared_retriever=None) -> Tuple[str, object, str]:
+            """Retrieve a single citation using a dedicated retriever per worker."""
+            retriever = shared_retriever or LegalDocumentRetriever()
+            try:
+                doc = retriever.retrieve(resolved)
+                status = "success" if doc else "not_found"
+                return status, doc, ""
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Retrieval failed for %s: %s", resolved.canonical_id, exc)
+                return "error", None, str(exc)
+
+        retrieved_count = 0
+        error_count = 0
+        citation_retrievals = []
+
+        if max_retrieval_workers and max_retrieval_workers > 1:
+            with ThreadPoolExecutor(max_workers=max_retrieval_workers) as executor:
+                future_to_index = {
+                    executor.submit(_retrieve_single, resolved): i
+                    for i, resolved in enumerate(citations_with_urn)
+                }
+                results = [None] * len(citations_with_urn)
+                for future in as_completed(future_to_index):
+                    idx = future_to_index[future]
+                    try:
+                        status, document, err = future.result()
+                    except Exception as exc:  # noqa: BLE001
+                        status, document, err = "error", None, str(exc)
+                    results[idx] = (status, document, err)
+            for resolved, res in zip(citations_with_urn, results):
+                status, document, err = res
+                if status == "success":
+                    retrieved_count += 1
+                if status == "error":
+                    error_count += 1
+                retrieval = CitationRetrieval(
+                    resolved_citation=resolved,
+                    retrieved_document=document,
+                    retrieval_status=status,  # type: ignore[arg-type]
+                    retrieval_metadata={"error": err} if err else {},
+                )
+                citation_retrievals.append(retrieval)
+        else:
+            shared_retriever = self.retriever
+            for resolved in citations_with_urn:
+                status, document, err = _retrieve_single(resolved, shared_retriever)
+                if status == "success":
+                    retrieved_count += 1
+                if status == "error":
+                    error_count += 1
+                retrieval = CitationRetrieval(
+                    resolved_citation=resolved,
+                    retrieved_document=document,
+                    retrieval_status=status,  # type: ignore[arg-type]
+                    retrieval_metadata={"error": err} if err else {},
+                )
+                citation_retrievals.append(retrieval)
+
         analysis.citation_retrievals = citation_retrievals
         analysis.metadata["citation_retrievals"] = citation_retrievals
 
         logger.info(
-            "  -> Retrieved %d documents (attempted=%d, skipped=%d, total=%d)",
+            "  -> Retrieved %d documents (attempted=%d, skipped=%d, errors=%d, total=%d)",
             retrieved_count,
             len(citations_with_urn),
             skipped_count,
+            error_count,
             len(analysis.resolved_citations),
         )
 

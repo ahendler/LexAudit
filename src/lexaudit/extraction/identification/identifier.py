@@ -42,21 +42,26 @@ class CitationIdentifier:
         self,
         text: str,
         suspects: List[CitationSuspect],
+        max_workers: int = 10,
     ) -> List[CitationSuspect]:
         """
         Runs the identification agent (and the reviewer, if enabled) for
-        each suspect and returns the list with identified_citations filled in.
+        each suspect in parallel and returns the list with identified_citations filled in.
         """
         if not suspects:
             return []
 
-        processed: List[CitationSuspect] = []
         logger.info(
-            "Starting identification for %d suspects (review=%s)",
+            "Starting identification for %d suspects (review=%s, workers=%d)",
             len(suspects),
             self.enable_review,
+            max_workers,
         )
-        for suspect in suspects:
+
+        processed: List[CitationSuspect] = []
+        
+        # Helper function for single item processing
+        def process_suspect(suspect: CitationSuspect) -> CitationSuspect:
             t0 = perf_counter()
             logger.info(
                 "Identifying suspect span=(%d,%d) len=%d",
@@ -73,7 +78,30 @@ class CitationIdentifier:
                 len(identified_suspect.identified_citations or []),
                 dt,
             )
-            processed.append(identified_suspect)
+            return identified_suspect
+
+        # Use ThreadPoolExecutor for parallel execution
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all tasks, mapping future to index to preserve order
+            future_to_index = {
+                executor.submit(process_suspect, suspect): i
+                for i, suspect in enumerate(suspects)
+            }
+            
+            results = [None] * len(suspects)
+            for future in as_completed(future_to_index):
+                index = future_to_index[future]
+                try:
+                    results[index] = future.result()
+                except Exception as exc:
+                    logger.error("Suspect processing generated an exception: %s", exc)
+                    # Return original suspect with empty citations on failure
+                    results[index] = suspects[index]
+
+        # Reconstruct list (results is already ordered by index)
+        processed = results
 
         logger.info("Completed identification stage")
         return processed
