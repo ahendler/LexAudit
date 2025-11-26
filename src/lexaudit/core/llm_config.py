@@ -59,8 +59,8 @@ def create_llm(
                 model=model_name,
                 temperature=temperature,
                 google_api_key=api_key,
-                timeout=80,  # 80 timeout for API calls
-                request_timeout=80,  # Alternative timeout parameter
+                timeout=120,  # 120 timeout for API calls
+                request_timeout=120,  # Alternative timeout parameter
             )
 
         elif provider == "anthropic":

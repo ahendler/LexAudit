@@ -6,12 +6,12 @@ pandas>=2.0.0
 numpy>=1.24.0
 
 # LLM & AI
-langchain==1.0.8
-langchain-community==0.4.1
-langchain-core==1.1.0
-langchain-google-genai==3.1.0
-langchain-openai==1.0.3
-langgraph==0.2.45
+langchain>=1.0.8
+langchain-community>=0.4.1
+langchain-core>=1.1.0
+langchain-google-genai>=3.1.0
+langchain-openai>=1.0.3
+langgraph>=0.2.45
 
 # Utils
 requests==2.32.5
